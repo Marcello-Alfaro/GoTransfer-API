@@ -8,7 +8,7 @@ import User from './models/User.js';
 import Token from './models/token.js';
 import File from './models/file.js';
 import Dir from './models/dir.js';
-import UserFile from './models/userFile.js';
+import ReceivedFile from './models/ReceivedFile.js';
 import authRoutes from './routes/auth.js';
 import fileRoutes from './routes/file.js';
 import cors from './middlewares/cors.js';
@@ -27,8 +27,8 @@ try {
   Dir.hasMany(File, { foreignKey: 'dirId', onDelete: 'CASCADE' });
   File.belongsTo(Dir, { foreignKey: 'dirId', onDelete: 'CASCADE' });
 
-  Dir.belongsToMany(User, { through: UserFile, foreignKey: 'dirId', otherKey: 'userId' });
-  User.belongsToMany(Dir, { through: UserFile, foreignKey: 'userId', otherKey: 'dirId' });
+  Dir.belongsToMany(User, { through: ReceivedFile, foreignKey: 'dirId', otherKey: 'userId' });
+  User.belongsToMany(Dir, { through: ReceivedFile, foreignKey: 'userId', otherKey: 'dirId' });
 
   app.use(express.json());
 
@@ -41,7 +41,7 @@ try {
 
   await sequelize.authenticate();
   console.log('Connection to database has been established successfully!');
-  await sequelize.sync();
+  await sequelize.sync(/* { force: true } */);
   if (!(await User.findByPk(1)))
     await User.create({
       name: 'test',
@@ -63,6 +63,9 @@ try {
   io.on('connection', (socket) => {
     console.log('A client has connected!');
   });
-} catch (error) {
-  console.error(error);
+  process.on('uncaughtException', (err) => {
+    console.error(err);
+  });
+} catch (err) {
+  console.error(err);
 }

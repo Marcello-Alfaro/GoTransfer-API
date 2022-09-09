@@ -1,7 +1,7 @@
 import { DataTypes } from 'Sequelize';
 import sequelize from '../database/connection.js';
 
-const UserFile = sequelize.define('Users_Files', {
+const receivedFile = sequelize.define('Received_Files', {
   message: {
     type: DataTypes.STRING,
     defaultValue: '',
@@ -14,4 +14,4 @@ const UserFile = sequelize.define('Users_Files', {
   },
 });
 
-export default UserFile;
+export default receivedFile;

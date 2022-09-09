@@ -4,6 +4,7 @@ import fsp from 'fs/promises';
 import { options } from '../config/config.js';
 import { v4 as uuidv4 } from 'uuid';
 import io from '../socket.js';
+import rimraf from 'rimraf';
 
 export default async (req, _, next) => {
   try {
