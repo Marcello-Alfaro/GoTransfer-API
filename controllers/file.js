@@ -64,14 +64,14 @@ export default {
       } = req;
 
       const [query] = await sequelize.query(
-        `SELECT us.username AS sender, rf.message, dir.dirId, dir.title, dir.expire, dir.createdAt
+        `SELECT us.username AS sender, ud.message, dir.dirId, dir.title, dir.expire, dir.createdAt
         FROM Users us
         INNER JOIN Dirs dir
         ON us.id = dir.userId
-        INNER JOIN Received_Files rf
-        ON rf.dirId = dir.id
+        INNER JOIN Users_Dirs ud
+        ON ud.dirId = dir.id
         INNER JOIN Users usr
-        ON usr.id = rf.userId
+        ON usr.id = ud.userId
         WHERE usr.username = ?;`,
         { replacements: [username] }
       );
@@ -103,14 +103,14 @@ export default {
 
       if (sender) {
         const [query] = await sequelize.query(
-          `SELECT us.username AS sender, usr.username AS receiver, rf.message, dir.dirId, dir.title, dir.expire, dir.createdAt
+          `SELECT us.username AS sender, usr.username AS receiver, ud.message, dir.dirId, dir.title, dir.expire, dir.createdAt
         FROM Users us
         INNER JOIN Dirs dir
         ON us.id = dir.userId
-        INNER JOIN Received_Files rf
-        ON rf.dirId = dir.id
+        INNER JOIN Users_Dirs ud
+        ON ud.dirId = dir.id
         INNER JOIN Users usr
-        ON usr.id = rf.userId
+        ON usr.id = ud.userId
         HAVING receiver = ? && sender = ?
         && dirId = ?;`,
           { replacements: [username, sender, dirId] }
@@ -142,14 +142,14 @@ export default {
 
       if (sender) {
         const [query] = await sequelize.query(
-          `SELECT us.username AS sender, usr.username AS receiver, rf.message, dir.dirId, dir.title, dir.expire, dir.createdAt
+          `SELECT us.username AS sender, usr.username AS receiver, ud.message, dir.dirId, dir.title, dir.expire, dir.createdAt
         FROM Users us
         INNER JOIN Dirs dir
         ON us.id = dir.userId
-        INNER JOIN Received_Files rf
-        ON rf.dirId = dir.id
+        INNER JOIN Users_Dirs ud
+        ON ud.dirId = dir.id
         INNER JOIN Users usr
-        ON usr.id = rf.userId
+        ON usr.id = ud.userId
         HAVING receiver = ? && sender = ?
         && dirId = ?;`,
           { replacements: [username, sender, dirId] }

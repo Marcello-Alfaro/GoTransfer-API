@@ -8,7 +8,7 @@ import User from './models/User.js';
 import Token from './models/token.js';
 import File from './models/file.js';
 import Dir from './models/dir.js';
-import ReceivedFile from './models/ReceivedFile.js';
+import UserDir from './models/userDir.js';
 import authRoutes from './routes/auth.js';
 import fileRoutes from './routes/file.js';
 import cors from './middlewares/cors.js';
@@ -27,8 +27,8 @@ try {
   Dir.hasMany(File, { foreignKey: 'dirId', onDelete: 'CASCADE' });
   File.belongsTo(Dir, { foreignKey: 'dirId', onDelete: 'CASCADE' });
 
-  Dir.belongsToMany(User, { through: ReceivedFile, foreignKey: 'dirId', otherKey: 'userId' });
-  User.belongsToMany(Dir, { through: ReceivedFile, foreignKey: 'userId', otherKey: 'dirId' });
+  Dir.belongsToMany(User, { through: UserDir, foreignKey: 'dirId', otherKey: 'userId' });
+  User.belongsToMany(Dir, { through: UserDir, foreignKey: 'userId', otherKey: 'dirId' });
 
   app.use(express.json());
 
