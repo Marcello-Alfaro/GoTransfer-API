@@ -6,9 +6,11 @@ import Dir from '../models/dir.js';
 import User from '../models/User.js';
 import rimraf from 'rimraf';
 import formatFileSize from '../helpers/formatFileSize.js';
+import fs from 'fs';
 import fsp from 'fs/promises';
 import zipFiles from '../helpers/zipFiles.js';
 import sequelize from '../database/connection.js';
+import JSZip from 'jszip';
 
 export default {
   async postSendFile(req, res, next) {
@@ -161,29 +163,26 @@ export default {
         const dir = await Dir.findOne({ where: { dirId }, include: File });
         if (!dir.Files.length > 0) throwErr('No files were found!', 404);
 
-        const filepath = await zipFiles(dir.Files, sender, dirId, dir.title);
+        const zip = new JSZip();
 
-        return res.status(200).download(filepath, async (err) => {
-          try {
-            if (err) return await fsp.unlink(filepath);
-            await fsp.unlink(filepath);
-          } catch (err) {
-            console.error(err);
-          }
+        dir.Files.forEach((entry) => {
+          const filepath = `data/${sender}/${dirId}/${entry.name}`;
+          zip.file(entry.name, fs.createReadStream(filepath));
         });
+
+        zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true }).pipe(res);
+        return res.attachment(`${dir.title}.zip`);
       }
 
       const dir = await Dir.findOne({ where: { dirId }, include: File });
       if (!dir.Files.length > 0) throwErr('No files were found!', 404);
-      const filepath = await zipFiles(dir.Files, username, dirId, dir.title);
-      res.status(200).download(filepath, async (err) => {
-        try {
-          if (err) return await fsp.unlink(filepath);
-          await fsp.unlink(filepath);
-        } catch (err) {
-          console.error(err);
-        }
+      const zip = new JSZip();
+      dir.Files.forEach((entry) => {
+        const filepath = `data/${username}/${dirId}/${entry.name}`;
+        zip.file(entry.name, fs.createReadStream(filepath));
       });
+      zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true }).pipe(res);
+      res.attachment(`${dir.title}.zip`);
     } catch (err) {
       next(err);
     }
