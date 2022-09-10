@@ -25,6 +25,13 @@ export default async (req, _, next) => {
       })(),
     });
 
+    form.on('fileBegin', (_, file) => {
+      if (!file.originalFilename && !file.newFilename) {
+        rimraf(dir, (err) => err);
+        fs.unlinkSync(dir);
+      }
+    });
+
     form.on('progress', (bytesReceived, bytesExpected) => {
       io.getIO().emit('progress', {
         action: 'progressUpdate',

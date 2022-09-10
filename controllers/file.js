@@ -27,7 +27,7 @@ export default {
       if (!sendToUser) throwErr('Could not found the specified user.', 404);
 
       const dir = await currUser.createDir({ dirId, title, expire: Date.now() });
-      console.log(dir);
+
       files.forEach(
         async (entry) =>
           await dir.createFile({ name: entry.originalFilename, size: formatFileSize(entry.size) })
@@ -75,11 +75,6 @@ export default {
         WHERE usr.username = ?;`,
         { replacements: [username] }
       );
-
-      console.log(query);
-
-      // check for when the receiver has a lot of files!
-      // also check myFiles when the files are created in the db
 
       if (!query.length > 0) throwErr('No files received for this user.', 404);
 

@@ -41,7 +41,7 @@ try {
 
   await sequelize.authenticate();
   console.log('Connection to database has been established successfully!');
-  await sequelize.sync(/* { force: true } */);
+  await sequelize.sync();
   if (!(await User.findByPk(1)))
     await User.create({
       name: 'test',
