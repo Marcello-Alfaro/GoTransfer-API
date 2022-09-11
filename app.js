@@ -1,5 +1,4 @@
 import express from 'express';
-import path from 'path';
 import helmet from 'helmet';
 import compression from 'compression';
 import { PORT } from './config/config.js';
@@ -58,7 +57,7 @@ try {
       email: 'test2@test.com',
       password: '$2a$12$K12qqTacOGtgncDhbsyYtuMpAykDbQoT2fTDbAWqAXRxnkT0CU8YG',
     });
-  const server = app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+  const server = app.listen(PORT ?? 3000, () => console.log(`Server started on port ${PORT}`));
   const io = socket.init(server);
   io.on('connection', (socket) => {
     console.log('A client has connected!');
