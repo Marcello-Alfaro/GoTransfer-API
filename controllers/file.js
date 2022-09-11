@@ -2,7 +2,7 @@ import { Op } from 'sequelize';
 import throwErr from '../helpers/throwErr.js';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
-import User from '../models/User.js';
+import User from '../models/user.js';
 import rimraf from 'rimraf';
 import formatFileSize from '../helpers/formatFileSize.js';
 import fs from 'fs';

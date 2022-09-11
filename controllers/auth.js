@@ -1,7 +1,7 @@
 import validator from 'validator';
 import { Op } from 'sequelize';
 import throwErr from '../helpers/throwErr.js';
-import User from '../models/User.js';
+import User from '../models/user.js';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/config.js';
 import thread from '../utils/thread.js';

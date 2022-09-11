@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { PORT } from './config/config.js';
 import sequelize from './database/connection.js';
-import User from './models/User.js';
+import User from './models/user.js';
 import Token from './models/token.js';
 import File from './models/file.js';
 import Dir from './models/dir.js';

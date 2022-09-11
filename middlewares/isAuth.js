@@ -1,4 +1,3 @@
-import jwt from 'jsonwebtoken';
 import throwErr from '../helpers/throwErr.js';
 import jwtVerify from '../helpers/jwtVerify.js';
 
