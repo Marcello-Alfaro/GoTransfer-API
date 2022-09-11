@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from 'Sequelize';
+import { DataTypes } from 'sequelize';
 import sequelize from '../database/connection.js';
 import { v4 as uuidv4 } from 'uuid';
 

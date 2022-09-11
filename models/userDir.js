@@ -1,4 +1,4 @@
-import { DataTypes } from 'Sequelize';
+import { DataTypes } from 'sequelize';
 import sequelize from '../database/connection.js';
 
 const UserDir = sequelize.define('Users_Dirs', {
