@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import throwErr from '../helpers/throwErr.js';
-import { jwtSecret } from '../config/config.js';
 import jwtVerify from '../helpers/jwtVerify.js';
 
 export default async (req, res, next) => {

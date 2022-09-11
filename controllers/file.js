@@ -1,5 +1,4 @@
 import { Op } from 'sequelize';
-import { API_URL } from '../config/config.js';
 import throwErr from '../helpers/throwErr.js';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
@@ -7,8 +6,6 @@ import User from '../models/User.js';
 import rimraf from 'rimraf';
 import formatFileSize from '../helpers/formatFileSize.js';
 import fs from 'fs';
-import fsp from 'fs/promises';
-import zipFiles from '../helpers/zipFiles.js';
 import sequelize from '../database/connection.js';
 import JSZip from 'jszip';
 

@@ -3,7 +3,7 @@ import { Op } from 'sequelize';
 import throwErr from '../helpers/throwErr.js';
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
-import { jwtSecret } from '../config/config.js';
+import { JWT_SECRET } from '../config/config.js';
 import thread from '../utils/thread.js';
 
 export default {
@@ -67,7 +67,7 @@ export default {
 
       if (!isValidPassword) throwErr('Wrong username, email or password, please try again!', 401);
 
-      const token = jwt.sign({ id, name, lastname, username, email }, jwtSecret, {
+      const token = jwt.sign({ id, name, lastname, username, email }, JWT_SECRET, {
         expiresIn: '2h',
       });
       res.status(200).json({ message: 'Login successfully!', token });
@@ -81,7 +81,7 @@ export default {
       const { authorization } = req.headers;
       if (!authorization) throwErr('No authorization header present!', 401);
       const token = authorization.split(' ')[1];
-      const decodedToken = jwt.verify(token, jwtSecret);
+      const decodedToken = jwt.verify(token, JWT_SECRET);
       res.status(200).json({ validToken: true });
     } catch (err) {
       throw err;
