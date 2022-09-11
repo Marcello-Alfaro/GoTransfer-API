@@ -41,22 +41,7 @@ try {
   await sequelize.authenticate();
   console.log('Connection to database has been established successfully!');
   await sequelize.sync();
-  if (!(await User.findByPk(1)))
-    await User.create({
-      name: 'test',
-      lastname: 'testing',
-      username: 'test4testing',
-      email: 'test@test.com',
-      password: '$2a$12$K12qqTacOGtgncDhbsyYtuMpAykDbQoT2fTDbAWqAXRxnkT0CU8YG',
-    });
-  if (!(await User.findByPk(2)))
-    await User.create({
-      name: 'test2',
-      lastname: 'testing2',
-      username: 'test2you',
-      email: 'test2@test.com',
-      password: '$2a$12$K12qqTacOGtgncDhbsyYtuMpAykDbQoT2fTDbAWqAXRxnkT0CU8YG',
-    });
+
   const server = app.listen(PORT ?? 3000, () => console.log(`Server started on port ${PORT}`));
   const io = socket.init(server);
   io.on('connection', (socket) => {
