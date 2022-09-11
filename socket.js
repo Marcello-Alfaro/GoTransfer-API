@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import { CORS_ORIGIN } from './config/config.js';
 import throwErr from './helpers/throwErr.js';
 let io;
 
@@ -6,7 +7,7 @@ export default {
   init(httpServer) {
     io = new Server(httpServer, {
       cors: {
-        origin: '*',
+        origin: CORS_ORIGIN,
         methods: ['GET', 'POST'],
       },
     });
