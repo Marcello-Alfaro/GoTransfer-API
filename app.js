@@ -3,7 +3,11 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { PORT } from './config/config.js';
 import sequelize from './database/connection.js';
+import path from 'path';
+import checkFiles from './helpers/checkFiles.js';
+import dirname from './utils/dirname.js';
 import User from './models/user.js';
+import NotAuthUser from './models/notAuthUser.js';
 import Token from './models/token.js';
 import File from './models/file.js';
 import Dir from './models/dir.js';
@@ -23,6 +27,9 @@ try {
   User.hasMany(Dir, { foreignKey: 'userId', onDelete: 'CASCADE' });
   Dir.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
 
+  NotAuthUser.hasMany(Dir, { foreignKey: 'notAuthUserId', onDelete: 'CASCADE' });
+  Dir.belongsTo(NotAuthUser, { foreignKey: 'notAuthUserId', onDelete: 'CASCADE' });
+
   Dir.hasMany(File, { foreignKey: 'dirId', onDelete: 'CASCADE' });
   File.belongsTo(Dir, { foreignKey: 'dirId', onDelete: 'CASCADE' });
 
@@ -34,6 +41,7 @@ try {
   app.use(compression());
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(cors);
+  app.use(express.static(path.join(dirname, 'public')));
   app.use('/auth', authRoutes);
   app.use('/files', fileRoutes);
   app.use(errHandler);
@@ -42,11 +50,15 @@ try {
   console.log('Connection to database has been established successfully!');
   await sequelize.sync();
 
-  const server = app.listen(PORT ?? 3000, () => console.log(`Server started on port ${PORT}`));
+  const server = app.listen(PORT ?? 3000, () => {
+    console.log(`Server's online on port ${PORT}`);
+    checkFiles();
+  });
   const io = socket.init(server);
   io.on('connection', (socket) => {
     console.log('A client has connected!');
   });
+
   process.on('uncaughtException', (err) => {
     console.error(err);
   });

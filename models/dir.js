@@ -15,8 +15,18 @@ const Dir = sequelize.define('Dirs', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  message: {
+    type: DataTypes.STRING,
+    defaultValue: 'No message provided.',
+    allowNull: false,
+  },
   expire: {
     type: DataTypes.DATE,
+    allowNull: false,
+  },
+  warned: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
     allowNull: false,
   },
 });

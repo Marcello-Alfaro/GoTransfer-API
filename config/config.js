@@ -5,11 +5,12 @@ export const options = {
   filename: (_, __, { originalFilename }) => originalFilename,
 };
 export const SALT = 12;
-export const FROM_EMAIL = 'fileshake@outlook.com';
 export const {
   PORT,
   JWT_SECRET,
   SENDGRID_API_KEY,
+  FROM_EMAIL,
+  API_URL,
   DB_DATABASE,
   DB_USER,
   DB_PASS,

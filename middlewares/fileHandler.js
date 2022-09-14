@@ -8,11 +8,9 @@ import rimraf from 'rimraf';
 
 export default async (req, _, next) => {
   try {
-    const {
-      user: { username },
-    } = req;
+    const { user: { username } = { username: null }, isAuth } = req;
     const dirId = uuidv4();
-    const dir = `data/${username}/${dirId}`;
+    const dir = !isAuth ? `data/${dirId}` : `data/${username}/${dirId}`;
     const form = formidable({
       ...options,
       uploadDir: await (async () => {
