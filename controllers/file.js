@@ -158,19 +158,21 @@ export default {
                           <td style="padding: 30px; background-color: #ffffff">
                           <a href="" style="text-decoration: none"
                           ><img
-                            src="${API_URL}/images/logo.png"
-                            width="250"
-                            alt="Logo"
-                            style="
-                              width: 250px;
-                              max-width: 80%;
-                              height: auto;
-                              border: none;
-                              text-decoration: none;
-                              color: #ffffff;
-                              margin-bottom: 20px;
-                            "
-                        /></a>
+                          src="${API_URL}/images/logo.png"
+                          width="250"
+                          alt="Logo"
+                          style="
+                            width: 250px;
+                            max-width: 80%;
+                            height: auto;
+                            border: none;
+                            text-decoration: none;
+                            color: #ffffff;
+                            display: block;
+                            margin: 0 auto;
+                            margin-bottom: 25px;
+                          "
+                      /></a>
                             <h1
                               style="
                                 margin-top: 0;
@@ -405,19 +407,21 @@ export default {
                           <td style="padding: 30px; background-color: #ffffff">
                           <a href="" style="text-decoration: none"
                           ><img
-                            src="${API_URL}/images/logo.png"
-                            width="250"
-                            alt="Logo"
-                            style="
-                              width: 250px;
-                              max-width: 80%;
-                              height: auto;
-                              border: none;
-                              text-decoration: none;
-                              color: #ffffff;
-                              margin-bottom: 20px;
-                            "
-                        /></a>
+                          src="${API_URL}/images/logo.png"
+                          width="250"
+                          alt="Logo"
+                          style="
+                            width: 250px;
+                            max-width: 80%;
+                            height: auto;
+                            border: none;
+                            text-decoration: none;
+                            color: #ffffff;
+                            display: block;
+                            margin: 0 auto;
+                            margin-bottom: 25px;
+                          "
+                      /></a>
                             <h1
                               style="
                                 margin-top: 0;
@@ -780,19 +784,21 @@ export default {
                               <td style="padding: 30px; background-color: #ffffff">
                               <a href="" style="text-decoration: none"
                               ><img
-                                src="${API_URL}/images/logo.png"
-                                width="250"
-                                alt="Logo"
-                                style="
-                                  width: 250px;
-                                  max-width: 80%;
-                                  height: auto;
-                                  border: none;
-                                  text-decoration: none;
-                                  color: #ffffff;
-                                  margin-bottom: 20px;
-                                "
-                            /></a>
+                              src="${API_URL}/images/logo.png"
+                              width="250"
+                              alt="Logo"
+                              style="
+                                width: 250px;
+                                max-width: 80%;
+                                height: auto;
+                                border: none;
+                                text-decoration: none;
+                                color: #ffffff;
+                                display: block;
+                                margin: 0 auto;
+                                margin-bottom: 25px;
+                              "
+                          /></a>
                                 <h1
                                   style="
                                     margin-top: 0;
@@ -1083,19 +1089,21 @@ export default {
                                 <td style="padding: 30px; background-color: #ffffff">
                                 <a href="" style="text-decoration: none"
                                 ><img
-                                  src="${API_URL}/images/logo.png"
-                                  width="250"
-                                  alt="Logo"
-                                  style="
-                                    width: 250px;
-                                    max-width: 80%;
-                                    height: auto;
-                                    border: none;
-                                    text-decoration: none;
-                                    color: #ffffff;
-                                    margin-bottom: 20px;
-                                  "
-                              /></a>
+                                src="${API_URL}/images/logo.png"
+                                width="250"
+                                alt="Logo"
+                                style="
+                                  width: 250px;
+                                  max-width: 80%;
+                                  height: auto;
+                                  border: none;
+                                  text-decoration: none;
+                                  color: #ffffff;
+                                  display: block;
+                                  margin: 0 auto;
+                                  margin-bottom: 25px;
+                                "
+                            /></a>
                                   <h1
                                     style="
                                       margin-top: 0;

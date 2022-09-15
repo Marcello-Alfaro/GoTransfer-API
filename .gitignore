@@ -1,4 +1,4 @@
 node_modules
 data
 nodemon.json
-notes.txt
+*.txt
