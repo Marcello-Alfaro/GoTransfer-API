@@ -3,10 +3,9 @@ import { Op } from 'sequelize';
 import throwErr from '../helpers/throwErr.js';
 import User from '../models/user.js';
 import jwt from 'jsonwebtoken';
-import { FROM_EMAIL, JWT_SECRET, SENDGRID_API_KEY } from '../config/config.js';
+import { FROM_EMAIL, JWT_SECRET } from '../config/config.js';
 import thread from '../utils/thread.js';
 import sgMail from '@sendgrid/mail';
-sgMail.setApiKey(SENDGRID_API_KEY);
 
 export default {
   async postSignup(req, res, next) {

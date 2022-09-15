@@ -1,11 +1,10 @@
 import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
-import { PORT } from './config/config.js';
+import { PORT, SENDGRID_API_KEY } from './config/config.js';
 import sequelize from './database/connection.js';
-import path from 'path';
+import sgMail from '@sendgrid/mail';
 import checkFiles from './helpers/checkFiles.js';
-import dirname from './utils/dirname.js';
 import User from './models/user.js';
 import NotAuthUser from './models/notAuthUser.js';
 import Token from './models/token.js';
@@ -20,6 +19,7 @@ import socket from './socket.js';
 
 try {
   const app = express();
+  sgMail.setApiKey(SENDGRID_API_KEY);
 
   User.hasMany(Token, { foreignKey: 'userId', onDelete: 'CASCADE' });
   Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -41,7 +41,7 @@ try {
   app.use(compression());
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(cors);
-  app.use(express.static(path.join(dirname, 'public')));
+  app.use(express.static('public'));
   app.use('/auth', authRoutes);
   app.use('/files', fileRoutes);
   app.use(errHandler);
