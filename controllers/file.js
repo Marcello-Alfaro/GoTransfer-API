@@ -43,7 +43,7 @@ export default {
         const msgToSource = {
           to: srcEmail,
           from: FROM_EMAIL,
-          subject: `Hello ${srcEmail.split('@')[0]}, we sent "${title}" to ${sendTo}`,
+          subject: `"${title}" was sent to ${sendTo}`,
           html: `<!DOCTYPE html>
           <html
             lang="en"
@@ -156,8 +156,7 @@ export default {
                       >
                         <tr>
                           <td style="padding: 30px; background-color: #ffffff">
-                          <a href="" style="text-decoration: none"
-                          ><img
+                          <img
                           src="${API_URL}/images/logo.png"
                           width="250"
                           alt="Logo"
@@ -172,7 +171,7 @@ export default {
                             margin: 0 auto;
                             margin-bottom: 25px;
                           "
-                      /></a>
+                      />
                             <h1
                               style="
                                 margin-top: 0;
@@ -183,17 +182,20 @@ export default {
                                 letter-spacing: -0.02em;
                               "
                             >
-                            Hello ${srcEmail.split('@')[0]}, We successfully sent ${
-            dirFiles.length > 1 ? `${dirFiles.length} files` : `file`
-          } to ${sendTo}
+                            Hello ${
+                              srcEmail.split('@')[0]
+                            }, "${title}" was successfully sent to ${sendTo}.
                             </h1>
-                            <p style="margin-bottom: 10px">
+                            <p>
                               Title: ${title}
+                            </p>
+                            <p>
+                            Files: ${dirFiles.length > 1 ? `${dirFiles.length} files` : `1 file`} 
                             </p>
                             ${
                               !message
                                 ? ''
-                                : `<p style="margin-bottom: 10px">
+                                : `<p>
                             Message: ${message}
                           </p>`
                             }
@@ -290,7 +292,7 @@ export default {
         const msgToDest = {
           to: sendTo,
           from: FROM_EMAIL,
-          subject: `Hi, ${srcEmail} sent you "${title}" with ${
+          subject: `Hi there, ${srcEmail} sent you "${title}" with ${
             dirFiles.length > 1 ? `${dirFiles.length} files` : `1 file`
           }`,
           html: `<!DOCTYPE html>
@@ -405,8 +407,7 @@ export default {
                       >
                         <tr>
                           <td style="padding: 30px; background-color: #ffffff">
-                          <a href="" style="text-decoration: none"
-                          ><img
+                          <img
                           src="${API_URL}/images/logo.png"
                           width="250"
                           alt="Logo"
@@ -421,7 +422,7 @@ export default {
                             margin: 0 auto;
                             margin-bottom: 25px;
                           "
-                      /></a>
+                      />
                             <h1
                               style="
                                 margin-top: 0;
@@ -432,19 +433,18 @@ export default {
                                 letter-spacing: -0.02em;
                               "
                             >
-                            Hello ${
-                              sendTo.split('@')[0]
-                            }, ${srcEmail} sent you "${title}" with the following ${
-            dirFiles.length > 1 ? `${dirFiles.length} files` : `file`
-          }
+                            Hello ${sendTo.split('@')[0]}, ${srcEmail} sent you "${title}".
                             </h1>
-                            <p style="margin-bottom: 10px">
+                            <p>
                               Title: ${title}
+                            </p>
+                            <p>
+                            Files: ${dirFiles.length > 1 ? `${dirFiles.length} files` : '1 file'} 
                             </p>
                             ${
                               !message
                                 ? ''
-                                : `<p style="margin-bottom: 10px">
+                                : `<p>
                             Message: ${message}
                           </p>`
                             }
@@ -782,8 +782,7 @@ export default {
                           >
                             <tr>
                               <td style="padding: 30px; background-color: #ffffff">
-                              <a href="" style="text-decoration: none"
-                              ><img
+                              <img
                               src="${API_URL}/images/logo.png"
                               width="250"
                               alt="Logo"
@@ -798,7 +797,7 @@ export default {
                                 margin: 0 auto;
                                 margin-bottom: 25px;
                               "
-                          /></a>
+                          />
                                 <h1
                                   style="
                                     margin-top: 0;
@@ -811,15 +810,15 @@ export default {
                                 >
                                 Hello ${
                                   srcEmail.split('@')[0]
-                                }, this email is to notify you that ${dstEmail} successfully downloaded one of your files
+                                }, this email is to notify you that ${dstEmail} downloaded one of your files.
                                 </h1>
-                                <p style="margin-bottom: 10px">
+                                <p>
                                   Title: ${dir.title}
                                 </p>
                                 ${
                                   !dir.message
                                     ? ''
-                                    : `<p style="margin-bottom: 10px">
+                                    : `<p>
                                 Message: ${dir.message}
                               </p>`
                                 }
@@ -1087,8 +1086,7 @@ export default {
                             >
                               <tr>
                                 <td style="padding: 30px; background-color: #ffffff">
-                                <a href="" style="text-decoration: none"
-                                ><img
+                                <img
                                 src="${API_URL}/images/logo.png"
                                 width="250"
                                 alt="Logo"
@@ -1103,7 +1101,7 @@ export default {
                                   margin: 0 auto;
                                   margin-bottom: 25px;
                                 "
-                            /></a>
+                            />
                                   <h1
                                     style="
                                       margin-top: 0;
@@ -1116,15 +1114,20 @@ export default {
                                   >
                                   Hello ${
                                     srcEmail.split('@')[0]
-                                  }, this email is to notify you that ${dstEmail} successfully downloaded all your files
+                                  }, this email is to notify you that ${dstEmail} successfully downloaded all your files.
                                   </h1>
-                                  <p style="margin-bottom: 10px">
+                                  <p>
                                     Title: ${dir.title}
+                                  </p>
+                                  <p>
+                                  Files: ${
+                                    dir.Files.length > 1 ? `${dir.Files.length} files` : '1 file'
+                                  } 
                                   </p>
                                   ${
                                     !dir.message
                                       ? ''
-                                      : `<p style="margin-bottom: 10px">
+                                      : `<p>
                                   Message: ${dir.message}
                                 </p>`
                                   }
