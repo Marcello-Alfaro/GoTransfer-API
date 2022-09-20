@@ -54,10 +54,8 @@ try {
     console.log(`Server's online on port ${PORT}`);
     checkFiles();
   });
+
   const io = socket.init(server);
-  io.on('connection', (socket) => {
-    console.log('A client has connected!');
-  });
 
   process.on('uncaughtException', (err) => {
     console.error(err);

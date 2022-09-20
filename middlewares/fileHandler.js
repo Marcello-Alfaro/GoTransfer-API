@@ -11,7 +11,7 @@ export default async (req, _, next) => {
     const { user: { username } = { username: null }, isAuth } = req;
     const dirId = uuidv4();
     const dir = !isAuth ? `data/${dirId}` : `data/${username}/${dirId}`;
-    const form = formidable({
+    const form = new formidable.IncomingForm({
       ...options,
       uploadDir: await (async () => {
         try {
