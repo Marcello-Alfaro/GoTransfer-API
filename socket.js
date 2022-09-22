@@ -1,8 +1,10 @@
 import { Server } from 'socket.io';
 import { CORS_ORIGIN } from './config/config.js';
+import jwtVerify from './helpers/jwtVerify.js';
 import throwErr from './helpers/throwErr.js';
 let io;
 let socket;
+let storageServerSocket;
 
 export default {
   init(httpServer) {
@@ -13,9 +15,26 @@ export default {
       },
     });
     io.on('connection', (sck) => {
-      console.log(`A client has connected! socket ID: ${sck.id}`);
+      console.log('A client has connected!');
       socket = sck;
     });
+    io.of('/storage-server')
+      .use(async (socket, next) => {
+        try {
+          const {
+            auth: { token },
+          } = socket.handshake;
+          if (!token) throwErr('No valid auth token!', 401);
+          await jwtVerify(token);
+          next();
+        } catch (err) {
+          next(err);
+        }
+      })
+      .on('connection', (socket) => {
+        console.log('Connection to storage server established!');
+        storageServerSocket = socket;
+      });
     return io;
   },
   getIO() {
@@ -25,5 +44,9 @@ export default {
   getSocket() {
     if (!io) throwErr('Socket.io not initialized!');
     return socket;
+  },
+  getServerSocket() {
+    if (!io) throwErr('Socket.io not initialized!');
+    return storageServerSocket;
   },
 };
