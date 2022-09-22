@@ -51,13 +51,11 @@ try {
   await sequelize.sync();
 
   const server = app.listen(PORT ?? 3000, () => {
-    console.log(`Server's online on port ${PORT}`);
+    console.log(`Server started on port ${PORT}`);
     checkFiles();
   });
-  const io = socket.init(server);
-  io.on('connection', (socket) => {
-    console.log('A client has connected!');
-  });
+
+  socket.init(server);
 
   process.on('uncaughtException', (err) => {
     console.error(err);

@@ -32,7 +32,7 @@ export default () => {
           const msgToDest = {
             to: dstEmail,
             from: FROM_EMAIL,
-            subject: `Hey there ${dstEmail.split('@')[0]}, your files are about to expire!`,
+            subject: `"${title}" sent by ${srcEmail} is about to expire!`,
             html: `<!DOCTYPE html>
           <html
             lang="en"
@@ -145,8 +145,7 @@ export default () => {
                       >
                         <tr>
                           <td style="padding: 30px; background-color: #ffffff">
-                          <a href="" style="text-decoration: none"
-                          ><img
+                          <img
                           src="${API_URL}/images/logo.png"
                           width="250"
                           alt="Logo"
@@ -161,7 +160,7 @@ export default () => {
                             margin: 0 auto;
                             margin-bottom: 25px;
                           "
-                      /></a>
+                      />
                             <h1
                               style="
                                 margin-top: 0;
@@ -174,15 +173,18 @@ export default () => {
                             >
                             Hello ${
                               dstEmail.split('@')[0]
-                            }, the following files sent by ${srcEmail} are about to expire in 1 day.
+                            }, "${title}" with the following files will expire in 1 day:
                             </h1>
-                            <p style="margin-bottom: 10px">
+                            <p>
                               Title: ${title}
+                            </p>
+                            <p>
+                            Files: ${Files.length > 1 ? `${Files.length} files` : '1 file'} 
                             </p>
                             ${
                               !message
                                 ? ''
-                                : `<p style="margin-bottom: 10px">
+                                : `<p>
                             Message: ${message}
                           </p>`
                             }

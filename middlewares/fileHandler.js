@@ -8,10 +8,10 @@ import rimraf from 'rimraf';
 
 export default async (req, _, next) => {
   try {
-    const { user: { username } = { username: null }, isAuth } = req;
+    const { user: { username } = { username: null }, isAuth, socketId } = req;
     const dirId = uuidv4();
     const dir = !isAuth ? `data/${dirId}` : `data/${username}/${dirId}`;
-    const form = formidable({
+    const form = new formidable.IncomingForm({
       ...options,
       uploadDir: await (async () => {
         try {
@@ -31,10 +31,12 @@ export default async (req, _, next) => {
     });
 
     form.on('progress', (bytesReceived, bytesExpected) => {
-      io.getIO().emit('progress', {
-        action: 'progressUpdate',
-        progress: `${Math.floor((bytesReceived / bytesExpected) * 100)}%`,
-      });
+      io.getIO()
+        .to(socketId)
+        .emit('progress', {
+          action: 'progressUpdate',
+          progress: `${Math.floor((bytesReceived / bytesExpected) * 100)}%`,
+        });
     });
 
     form.parse(req, (err, fields, { files }) => {
