@@ -145,21 +145,42 @@ export default {
     }
   },
 
-  async getFile(req, res) {
-    const { dirId, fileId } = req.params;
-    const { srcEmail, dstEmail } = req.query;
-    if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
+  async getFile(req, res, next) {
+    try {
+      const { dirId, fileId } = req.params;
+      const { srcEmail, dstEmail } = req.query;
+      if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
 
-    const dir = await Dir.findOne({ where: { dirId } });
-    const file = await File.findOne({ where: { fileId } });
-    io.getIO().of('/storage-server').emit('get-file', { dirId, fileId, name: file.name });
-    response = res;
-    eventEmitter.once(`download-file-${fileId}-finished`, async () => {
-      await file.destroy();
-      const msgToSource = email.srcPartialDownload(srcEmail, dstEmail, dir, file);
-      await sgMail.send(msgToSource);
-    });
-    return res.attachment(file.name);
+      const dir = await Dir.findOne({ where: { dirId } });
+      const file = await File.findOne({ where: { fileId } });
+      if (!dir || !file)
+        throwErr('Something went wrong, file was already downloaded or was not found!', 404);
+      io.getIO().of('/storage-server').emit('get-file', { dirId, fileId, name: file.name });
+      response = res;
+      eventEmitter.once(`download-file-${fileId}-finished`, async () => {
+        await file.destroy();
+        const filesLeft = await Dir.findOne({ where: { dirId }, include: File });
+        if (!filesLeft.Files.length > 0) {
+          io.getIO().of('/storage-server').emit(`dir-files-downloaded`, { dirId });
+          const dirData = await Dir.findOne({
+            where: { dirId },
+            include: {
+              model: File,
+              paranoid: false,
+            },
+          });
+          const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dirData);
+          await sgMail.send(msgToSource);
+          return await dirData.destroy();
+        }
+
+        const msgToSource = email.srcPartialDownload(srcEmail, dstEmail, dir, file);
+        await sgMail.send(msgToSource);
+      });
+      return res.attachment(file.name);
+    } catch (err) {
+      next(err);
+    }
   },
 
   async getAllFiles(req, res, next) {
