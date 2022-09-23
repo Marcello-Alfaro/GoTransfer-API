@@ -55,14 +55,12 @@ export default {
           Files: dirFiles,
         });
 
-        await sgMail.send(msgToSource);
-
         io.getIO().of('/storage-server').emit('send-files', { dirId, title, files: dirFiles });
 
-        io.getServerSocket().once(
-          `transfer-${dirId}-completed`,
-          async () => await sgMail.send(msgToDest)
-        );
+        io.getServerSocket().once(`transfer-${dirId}-completed`, async () => {
+          await sgMail.send(msgToSource);
+          await sgMail.send(msgToDest);
+        });
 
         return res.status(200).json({ message: `Files sent successfully to ${sendTo}` });
       }
