@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import io from '../socket.js';
 import rimraf from 'rimraf';
 
-export default async (req, _, next) => {
+export default async (req, res, next) => {
   try {
     const { user: { username } = { username: null }, isAuth, socketId } = req;
     const dirId = uuidv4();
@@ -26,7 +26,8 @@ export default async (req, _, next) => {
     form.on('fileBegin', (_, file) => {
       if (!file.originalFilename && !file.newFilename) {
         rimraf(dir, (err) => err);
-        fs.unlinkSync(dir);
+        res.status(422).json({ message: 'No valid files were provided.' });
+        return fs.unlinkSync(dir);
       }
     });
 
