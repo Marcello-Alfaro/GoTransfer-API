@@ -8,8 +8,8 @@ const router = express.Router();
 
 router.get('/myFiles', isAuth, fileController.getMyFiles);
 router.get('/receivedFiles', isAuth, fileController.getReceivedFiles);
-router.get('/download/:dirId/:fileId', isAuth, fileController.getFile);
 router.get('/transfer/:dirId/:fileId', isAuth, fileController.getTransferFiles);
+router.get('/download/:dirId/:fileId', isAuth, fileController.getFile);
 router.get('/download/:dirId', isAuth, fileController.getAllFiles);
 
 router.post('/send-file', isAuth, socketId, fileHandler, fileController.postSendFile);

@@ -1,22 +1,20 @@
-import { Op } from 'sequelize';
 import throwErr from '../helpers/throwErr.js';
+import fsp from 'fs/promises';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
 import User from '../models/user.js';
 import sgMail from '@sendgrid/mail';
-import rimraf from 'rimraf';
 import formatFileSize from '../helpers/formatFileSize.js';
-import EventEmitter from 'events';
 import sequelize from '../database/connection.js';
 import validator from 'validator';
 import NotAuthUser from '../models/notAuthUser.js';
 import days from '../helpers/days.js';
 import io from '../socket.js';
-import pump from 'pump';
 import email from '../helpers/email.js';
 
 let response;
-const eventEmitter = new EventEmitter();
+let downloadAllCompleted;
+let downloadFileCompleted;
 
 export default {
   async postSendFile(req, res, next) {
@@ -31,7 +29,14 @@ export default {
         if (validator.isEmpty(sendTo) || !validator.isEmail(sendTo))
           throwErr('Send to email is required and must be a valid email', 422);
 
-        const notAuthUser = await NotAuthUser.create({ srcEmail: srcEmail, dstEmail: sendTo });
+        const notAuthUserExists = await NotAuthUser.findOne({
+          where: { srcEmail, dstEmail: sendTo },
+        });
+
+        const notAuthUser = !notAuthUserExists
+          ? await NotAuthUser.create({ srcEmail, dstEmail: sendTo })
+          : notAuthUserExists;
+
         const size = formatFileSize(files.reduce((accum, entry) => (accum += entry.size), 0));
         const dir = await notAuthUser.createDir({ dirId, title, message, size, expire });
 
@@ -60,32 +65,17 @@ export default {
         io.getServerSocket().once(`transfer-${dirId}-completed`, async () => {
           await sgMail.send(msgToSource);
           await sgMail.send(msgToDest);
+          return res.status(200).json({ message: `Files sent successfully to ${sendTo}` });
         });
-
-        return res.status(200).json({ message: `Files sent successfully to ${sendTo}` });
       }
-
-      const currUser = await User.findOne({ where: { username } });
-      if (!currUser) throwErr('Could not found the currently logged user.', 404);
-
-      const sendToUser = await User.findOne({
-        where: { [Op.or]: { username: sendTo, email: sendTo } },
-      });
-      if (!sendToUser) throwErr('Could not found the specified user.', 404);
-
-      const dir = await currUser.createDir({ dirId, title, expire: Date.now() });
-
-      files.forEach(
-        async (entry) =>
-          await dir.createFile({ name: entry.originalFilename, size: formatFileSize(entry.size) })
-      );
-      await dir.addUser(sendToUser, { through: { message } });
-      res.status(200).json({ message: `Files sent successfully to ${sendTo}.` });
     } catch (err) {
-      rimraf(
-        !req.isAuth ? `data/${req.body.dirId}` : `data/${req.user.username}/${req.body.dirId}`,
-        (err) => err && next(err)
-      );
+      (async () =>
+        await fsp.rm(
+          !req.isAuth
+            ? `storage/${req.body.dirId}`
+            : `storage/${req.user.username}/${req.body.dirId}`,
+          { recursive: true, force: true }
+        ))();
       next(err);
     }
   },
@@ -152,10 +142,13 @@ export default {
       const dir = await Dir.findOne({ where: { dirId } });
       const file = await File.findOne({ where: { fileId } });
       if (!dir || !file)
-        throwErr('Something went wrong, file was already downloaded or was not found!', 404);
+        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
+
       io.getIO().of('/storage-server').emit('get-file', { dirId, fileId, name: file.name });
+
       response = res;
-      eventEmitter.once(`download-file-${fileId}-finished`, async () => {
+
+      downloadFileCompleted = async () => {
         await file.destroy();
         const filesLeft = await Dir.findOne({ where: { dirId }, include: File });
         if (!filesLeft.Files.length > 0) {
@@ -174,7 +167,8 @@ export default {
 
         const msgToSource = email.srcPartialDownload(srcEmail, dstEmail, dir, file);
         await sgMail.send(msgToSource);
-      });
+      };
+
       return res.attachment(file.name);
     } catch (err) {
       next(err);
@@ -193,11 +187,12 @@ export default {
       });
 
       if (!dir)
-        throwErr('Something went wrong, link is invalid or files were already downloaded!', 404);
+        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
       const { title, Files } = dir;
       io.getIO().of('/storage-server').emit('get-all-files', { dirId, title, Files });
       response = res;
-      eventEmitter.once(`download-all-${dirId}-finished`, async () => {
+
+      downloadAllCompleted = async () => {
         await dir.destroy();
         const dirData = await Dir.findOne({
           where: { dirId },
@@ -206,36 +201,63 @@ export default {
         });
         const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dirData);
         await sgMail.send(msgToSource);
-      });
+      };
+
       return res.attachment(`${title}.zip`);
     } catch (err) {
       next(err);
     }
   },
 
-  async getFileStorage(req, res, next) {
+  getFileStorage(req, res, next) {
     try {
-      const { fileId } = req.query;
-      pump(req, response, (err) => {
-        if (err) throw err;
-        eventEmitter.emit(`download-file-${fileId}-finished`);
-        res.status(200).json({ success: true });
+      req.pipe(response);
+
+      response.on('close', () => {
+        try {
+          res.status(503).json({ success: false });
+          throwErr('Connection was closed.', 503);
+        } catch (err) {
+          next(err);
+        }
+      });
+
+      response.on('finish', async () => {
+        try {
+          res.status(200).json({ success: true });
+          await downloadFileCompleted();
+        } catch (err) {
+          next(err);
+        }
       });
     } catch (err) {
-      next(err);
+      throw err;
     }
   },
 
-  async getAllFilesStorage(req, res, next) {
+  getAllFilesStorage(req, res, next) {
     try {
-      const { dirId } = req.query;
-      pump(req, response, (err) => {
-        if (err) throw err;
-        eventEmitter.emit(`download-all-${dirId}-finished`);
-        res.status(200).json({ success: true });
+      req.pipe(response);
+
+      response.on('close', () => {
+        try {
+          res.status(503).json({ success: false });
+          throwErr('Connection was closed.', 503);
+        } catch (err) {
+          next(err);
+        }
+      });
+
+      response.on('finish', async () => {
+        try {
+          res.status(200).json({ success: true });
+          await downloadAllCompleted();
+        } catch (err) {
+          next(err);
+        }
       });
     } catch (err) {
-      next(err);
+      throw err;
     }
   },
 
@@ -247,7 +269,7 @@ export default {
       if (!isAuth) {
         const file = await File.findOne({ where: { fileId } });
         if (!file) throwErr('Something went wrong, file not found or was already downloaded!', 404);
-        const filepath = `data/${dirId}/${file.name}`;
+        const filepath = `storage/${dirId}/${file.name}`;
         return res.download(filepath, async (err) => {
           try {
             if (err) throw err;
@@ -260,9 +282,10 @@ export default {
                 where: { transfered: false },
               },
             });
-            if (!filesLeft) return rimraf(`data/${dirId}`, (err) => err && console.error(err));
+            if (!filesLeft)
+              return await fsp.rm(`storage/${dirId}`, { recursive: true, force: true });
           } catch (err) {
-            console.error(err);
+            next(err);
           }
         });
       }

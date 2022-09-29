@@ -4,7 +4,6 @@ import compression from 'compression';
 import { PORT, SENDGRID_API_KEY } from './config/config.js';
 import sequelize from './database/connection.js';
 import sgMail from '@sendgrid/mail';
-import checkFiles from './helpers/checkFiles.js';
 import User from './models/user.js';
 import NotAuthUser from './models/notAuthUser.js';
 import Token from './models/token.js';
@@ -15,6 +14,7 @@ import authRoutes from './routes/auth.js';
 import fileRoutes from './routes/file.js';
 import cors from './middlewares/cors.js';
 import errHandler from './middlewares/errHandler.js';
+import serverInit from './helpers/serverInit.js';
 import socket from './socket.js';
 
 try {
@@ -50,10 +50,7 @@ try {
   console.log('Connection to database has been established successfully!');
   await sequelize.sync();
 
-  const server = app.listen(PORT ?? 3000, () => {
-    console.log(`Server started on port ${PORT}`);
-    checkFiles();
-  });
+  const server = app.listen(PORT ?? 3000, serverInit);
 
   socket.init(server);
 

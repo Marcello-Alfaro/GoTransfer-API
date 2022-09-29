@@ -1,16 +1,15 @@
 import formidable from 'formidable';
-import fs from 'fs';
 import fsp from 'fs/promises';
 import { options } from '../config/config.js';
 import { v4 as uuidv4 } from 'uuid';
 import io from '../socket.js';
-import rimraf from 'rimraf';
+import throwErr from '../helpers/throwErr.js';
 
-export default async (req, res, next) => {
+export default async (req, _, next) => {
   try {
     const { user: { username } = { username: null }, isAuth, socketId } = req;
     const dirId = uuidv4();
-    const dir = !isAuth ? `data/${dirId}` : `data/${username}/${dirId}`;
+    const dir = !isAuth ? `storage/${dirId}` : `storage/${username}/${dirId}`;
     const form = new formidable.IncomingForm({
       ...options,
       uploadDir: await (async () => {
@@ -23,11 +22,14 @@ export default async (req, res, next) => {
       })(),
     });
 
-    form.on('fileBegin', (_, file) => {
+    form.on('fileBegin', async (_, file) => {
       if (!file.originalFilename && !file.newFilename) {
-        rimraf(dir, (err) => err);
-        res.status(422).json({ message: 'No valid files were provided.' });
-        return fs.unlinkSync(dir);
+        try {
+          await fsp.rm(dir, { recursive: true, force: true });
+          throwErr('No valid files were provided.', 422);
+        } catch (err) {
+          next(err);
+        }
       }
     });
 
