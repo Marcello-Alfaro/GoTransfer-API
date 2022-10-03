@@ -52,7 +52,7 @@ export default () => {
           entry.Dirs.forEach(async (entry) => {
             const { dirId } = entry;
             await entry.destroy();
-            socket.getIO().of('/storage-server').emit('file-expired', { dirId });
+            socket.getIO().of('/storage-server').emit('unlink-file', { dirId });
             const msgToSource = email.srcFileExpired(srcEmail, dstEmail, entry);
             await sgMail.send(msgToSource);
           });

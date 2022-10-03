@@ -23,11 +23,6 @@ const File = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    transfered: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false,
-    },
   },
   { paranoid: true }
 );

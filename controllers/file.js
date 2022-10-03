@@ -1,20 +1,23 @@
 import throwErr from '../helpers/throwErr.js';
-import fsp from 'fs/promises';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
 import User from '../models/user.js';
 import sgMail from '@sendgrid/mail';
 import formatFileSize from '../helpers/formatFileSize.js';
 import sequelize from '../database/connection.js';
+import busboy from 'busboy';
+import { v4 as uuidv4 } from 'uuid';
 import validator from 'validator';
 import NotAuthUser from '../models/notAuthUser.js';
 import days from '../helpers/days.js';
 import io from '../socket.js';
 import email from '../helpers/email.js';
+import pQueue from 'p-queue';
 
 let response;
 let downloadAllCompleted;
 let downloadFileCompleted;
+let executeFileStream;
 
 export default {
   async postSendFile(req, res, next) {
@@ -44,7 +47,7 @@ export default {
           files.map(
             async (entry) =>
               await dir.createFile({
-                name: entry.originalFilename,
+                name: entry.filename,
                 size: formatFileSize(entry.size),
               })
           )
@@ -60,22 +63,12 @@ export default {
           Files: dirFiles,
         });
 
-        io.getIO().of('/storage-server').emit('send-files', { dirId, title, files: dirFiles });
-
-        io.getServerSocket().once(`transfer-${dirId}-completed`, async () => {
-          await sgMail.send(msgToSource);
-          await sgMail.send(msgToDest);
-          return res.status(200).json({ message: `Files sent successfully to ${sendTo}` });
-        });
+        await sgMail.send(msgToSource);
+        await sgMail.send(msgToDest);
+        return res.status(200).json({ message: `Files sent successfully to ${sendTo}` });
       }
     } catch (err) {
-      (async () =>
-        await fsp.rm(
-          !req.isAuth
-            ? `storage/${req.body.dirId}`
-            : `storage/${req.user.username}/${req.body.dirId}`,
-          { recursive: true, force: true }
-        ))();
+      io.getIO().of('/storage-server').emit('unlink-file', { dirId: req.body.dirId });
       next(err);
     }
   },
@@ -261,36 +254,97 @@ export default {
     }
   },
 
-  async getTransferFiles(req, res, next) {
-    try {
-      const { dirId, fileId } = req.params;
-      const { isAuth } = req;
+  fileHandler(req, _, next) {
+    const { headers, socketId } = req;
+    const bytesExpected = +headers['content-length'];
+    let bytesReceived = 0;
+    let size = 0;
+    let fields = {};
+    const Busboy = busboy({ headers });
+    const workQueue = new pQueue({ concurrency: 1 });
+    const dirId = uuidv4();
+    const files = [];
 
-      if (!isAuth) {
-        const file = await File.findOne({ where: { fileId } });
-        if (!file) throwErr('Something went wrong, file not found or was already downloaded!', 404);
-        const filepath = `storage/${dirId}/${file.name}`;
-        return res.download(filepath, async (err) => {
-          try {
-            if (err) throw err;
-            file.set({ transfered: !file.transfered });
-            await file.save();
-            const filesLeft = await Dir.findOne({
-              where: { dirId },
-              include: {
-                model: File,
-                where: { transfered: false },
-              },
+    const formHandler = (cb) =>
+      workQueue.add(async () => {
+        try {
+          await cb();
+        } catch (err) {
+          const { message, status } = err;
+          req.unpipe(Busboy);
+          workQueue.pause();
+          io.getIO().to(socketId).emit('error-uploading', { message, status });
+          next(err);
+        }
+      });
+
+    Busboy.on('field', (field, value) =>
+      formHandler(() => {
+        fields = { ...fields, [field]: value };
+
+        if (bytesExpected > 15 * 1024 * 1024 * 1024)
+          throwErr('File is too big!. Max size per request is 15GB.', 422);
+
+        if (fields.srcEmail)
+          if (validator.isEmpty(fields.srcEmail) || !validator.isEmail(fields.srcEmail))
+            throwErr('Your email is required and must be a valid email.', 422);
+
+        if (fields.sendTo)
+          if (validator.isEmpty(fields.sendTo) || !validator.isEmail(fields.sendTo))
+            throwErr('Send to email is required and must be a valid email', 422);
+      })
+    );
+
+    Busboy.on('file', (_, file, { filename }) =>
+      formHandler(() => {
+        file.on('data', (chunk) => {
+          bytesReceived += chunk.length;
+          size += chunk.length;
+          io.getIO()
+            .to(socketId)
+            .emit('progress', {
+              action: 'progressUpdate',
+              progress: `${Math.round((bytesReceived / bytesExpected) * 100)}%`,
             });
-            if (!filesLeft)
-              return await fsp.rm(`storage/${dirId}`, { recursive: true, force: true });
-          } catch (err) {
-            next(err);
-          }
         });
-      }
-    } catch (err) {
+
+        io.getIO().of('/storage-server').emit('alloc-storage-server', { dirId, filename });
+
+        executeFileStream = () => file.pipe(response);
+
+        file.on('end', () => {
+          files.push({ filename, size });
+          size = 0;
+        });
+      })
+    );
+
+    Busboy.on('finish', () =>
+      formHandler(() => {
+        if (!fields.title) fields.title = files[0].filename;
+        req.body = { ...fields, dirId, files };
+        next();
+      })
+    );
+
+    Busboy.on('error', (err) => {
+      req.unpipe(Busboy);
+      io.getIO().to(socketId).emit('error-uploading', { err });
       next(err);
+    });
+
+    req.on('aborted', () => io.getIO().of('/storage-server').emit('unlink-file', { dirId }));
+
+    req.pipe(Busboy);
+  },
+
+  getTransferFiles(_, res) {
+    try {
+      response = res;
+      executeFileStream();
+      return res;
+    } catch (err) {
+      throw err;
     }
   },
 };
