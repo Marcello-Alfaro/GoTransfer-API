@@ -59,6 +59,7 @@ export default {
 
         await sgMail.send(msgToSource);
         await sgMail.send(msgToDest);
+
         return res.status(200).json({ message: `Files sent successfully to ${sendTo}` });
       }
     } catch (err) {
@@ -291,20 +292,22 @@ export default {
 
     Busboy.on('file', (_, file, { filename }) =>
       formHandler(() => {
-        file.on('data', (chunk) => {
-          bytesReceived += chunk.length;
-          size += chunk.length;
-          io.getIO()
-            .to(socketId)
-            .emit('progress', {
-              action: 'progressUpdate',
-              progress: `${Math.round((bytesReceived / bytesExpected) * 100)}%`,
-            });
-        });
-
         io.getIO().of('/storage-server').emit('alloc-storage-server', { dirId, filename });
 
-        executeFileStream = () => file.pipe(response);
+        executeFileStream = () => {
+          file.pipe(response);
+
+          file.on('data', (chunk) => {
+            bytesReceived += chunk.length;
+            size += chunk.length;
+            io.getIO()
+              .to(socketId)
+              .emit('progress', {
+                action: 'progressUpdate',
+                progress: `${Math.round((bytesReceived / bytesExpected) * 100)}%`,
+              });
+          });
+        };
 
         file.on('end', () => {
           files.push({ filename, size });
@@ -336,7 +339,7 @@ export default {
     try {
       response = res;
       executeFileStream();
-      return res;
+      return res.attachment();
     } catch (err) {
       throw err;
     }
