@@ -26,12 +26,6 @@ export default {
       const { srcEmail, sendTo, title, message, dirId, files, expire = days(5) } = req.body;
 
       if (!isAuth) {
-        if (validator.isEmpty(srcEmail) || !validator.isEmail(srcEmail))
-          throwErr('Your email is required and must be a valid email.', 422);
-
-        if (validator.isEmpty(sendTo) || !validator.isEmail(sendTo))
-          throwErr('Send to email is required and must be a valid email', 422);
-
         const notAuthUserExists = await NotAuthUser.findOne({
           where: { srcEmail, dstEmail: sendTo },
         });
