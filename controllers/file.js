@@ -137,22 +137,6 @@ export default {
       response = res;
 
       downloadFileCompleted = async () => {
-        await file.destroy();
-        const filesLeft = await Dir.findOne({ where: { dirId }, include: File });
-        if (!filesLeft.Files.length > 0) {
-          io.getIO().of('/storage-server').emit(`dir-files-downloaded`, { dirId });
-          const dirData = await Dir.findOne({
-            where: { dirId },
-            include: {
-              model: File,
-              paranoid: false,
-            },
-          });
-          const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dirData);
-          await sgMail.send(msgToSource);
-          return await dirData.destroy();
-        }
-
         const msgToSource = email.srcPartialDownload(srcEmail, dstEmail, dir, file);
         await sgMail.send(msgToSource);
       };
@@ -181,13 +165,7 @@ export default {
       response = res;
 
       downloadAllCompleted = async () => {
-        await dir.destroy();
-        const dirData = await Dir.findOne({
-          where: { dirId },
-          include: { model: File, attributes: ['name', 'size', 'deletedAt'], paranoid: false },
-          paranoid: false,
-        });
-        const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dirData);
+        const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dir);
         await sgMail.send(msgToSource);
       };
 
@@ -197,22 +175,12 @@ export default {
     }
   },
 
-  getFileStorage(req, res, next) {
+  getFileStorage(req, _, next) {
     try {
       req.pipe(response);
 
-      response.on('close', () => {
-        try {
-          res.status(503).json({ success: false });
-          throwErr('Connection was closed.', 503);
-        } catch (err) {
-          next(err);
-        }
-      });
-
       response.on('finish', async () => {
         try {
-          res.status(200).json({ success: true });
           await downloadFileCompleted();
         } catch (err) {
           next(err);
@@ -223,22 +191,12 @@ export default {
     }
   },
 
-  getAllFilesStorage(req, res, next) {
+  getAllFilesStorage(req, _, next) {
     try {
       req.pipe(response);
 
-      response.on('close', () => {
-        try {
-          res.status(503).json({ success: false });
-          throwErr('Connection was closed.', 503);
-        } catch (err) {
-          next(err);
-        }
-      });
-
       response.on('finish', async () => {
         try {
-          res.status(200).json({ success: true });
           await downloadAllCompleted();
         } catch (err) {
           next(err);
