@@ -311,7 +311,10 @@ export default {
         next(err);
       });
 
-      req.on('aborted', () => io.getIO().of('/storage-server').emit('unlink-file', { dirId }));
+      req.on('aborted', () => {
+        req.unpipe(Busboy);
+        io.getIO().of('/storage-server').emit('unlink-file', { dirId });
+      });
 
       req.pipe(Busboy);
     } catch (err) {
