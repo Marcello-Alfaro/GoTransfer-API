@@ -14,10 +14,8 @@ import io from '../socket.js';
 import email from '../helpers/email.js';
 import pQueue from 'p-queue';
 
-let response;
-let downloadAllCompleted;
-let downloadFileCompleted;
 let executeFileStream;
+const downloadHandlers = [];
 
 export default {
   async postSendFile(req, res, next) {
@@ -127,19 +125,25 @@ export default {
       const { srcEmail, dstEmail } = req.query;
       if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
 
-      const dir = await Dir.findOne({ where: { dirId } });
+      const dir = await Dir.findOne({ where: { dirId }, include: File });
       const file = await File.findOne({ where: { fileId } });
       if (!dir || !file)
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
 
       io.getIO().of('/storage-server').emit('get-file', { dirId, fileId, name: file.name });
 
-      response = res;
-
-      downloadFileCompleted = async () => {
-        const msgToSource = email.srcPartialDownload(srcEmail, dstEmail, dir, file);
-        await sgMail.send(msgToSource);
-      };
+      downloadHandlers.push({
+        fileId,
+        res,
+        async downloadFileCompleted() {
+          if (dir.Files.length > 1) {
+            const msgToSource = email.srcPartialDownload(srcEmail, dstEmail, dir, file);
+            return await sgMail.send(msgToSource);
+          }
+          const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dir);
+          await sgMail.send(msgToSource);
+        },
+      });
 
       return res.attachment(file.name);
     } catch (err) {
@@ -161,13 +165,17 @@ export default {
       if (!dir)
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
       const { title, Files } = dir;
-      io.getIO().of('/storage-server').emit('get-all-files', { dirId, title, Files });
-      response = res;
 
-      downloadAllCompleted = async () => {
-        const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dir);
-        await sgMail.send(msgToSource);
-      };
+      io.getIO().of('/storage-server').emit('get-all-files', { dirId, title, Files });
+
+      downloadHandlers.push({
+        dirId,
+        res,
+        async downloadFileCompleted() {
+          const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dir);
+          await sgMail.send(msgToSource);
+        },
+      });
 
       return res.attachment(`${title}.zip`);
     } catch (err) {
@@ -177,9 +185,15 @@ export default {
 
   getFileStorage(req, _, next) {
     try {
-      req.pipe(response);
+      const { fileid: fileId } = req.headers;
+      const { res, downloadFileCompleted } = downloadHandlers.splice(
+        downloadHandlers.findIndex((entry) => (entry.fileId = fileId)),
+        1
+      )[0];
 
-      response.on('finish', async () => {
+      req.pipe(res);
+
+      res.on('finish', async () => {
         try {
           await downloadFileCompleted();
         } catch (err) {
@@ -193,11 +207,17 @@ export default {
 
   getAllFilesStorage(req, _, next) {
     try {
-      req.pipe(response);
+      const { dirid: dirId } = req.headers;
+      const { res, downloadFileCompleted } = downloadHandlers.splice(
+        downloadHandlers.findIndex((entry) => (entry.dirId = dirId)),
+        1
+      )[0];
 
-      response.on('finish', async () => {
+      req.pipe(res);
+
+      res.on('finish', async () => {
         try {
-          await downloadAllCompleted();
+          await downloadFileCompleted();
         } catch (err) {
           next(err);
         }
@@ -208,95 +228,100 @@ export default {
   },
 
   fileHandler(req, _, next) {
-    const { headers, socketId } = req;
-    const bytesExpected = +headers['content-length'];
-    let bytesReceived = 0;
-    let size = 0;
-    let fields = {};
-    const Busboy = busboy({ headers });
-    const workQueue = new pQueue({ concurrency: 1 });
-    const dirId = uuidv4();
-    const files = [];
+    try {
+      const { headers, socketId } = req;
+      const bytesExpected = +headers['content-length'];
+      let bytesReceived = 0;
+      let size = 0;
+      let fields = {};
+      const Busboy = busboy({ headers });
+      const workQueue = new pQueue({ concurrency: 1 });
+      const dirId = uuidv4();
+      const files = [];
 
-    const formHandler = (cb) =>
-      workQueue.add(async () => {
-        try {
-          await cb();
-        } catch (err) {
-          const { message, status } = err;
-          req.unpipe(Busboy);
+      const formHandler = (cb) =>
+        workQueue.add(async () => {
+          try {
+            await cb();
+          } catch (err) {
+            const { message, status } = err;
+            req.unpipe(Busboy);
+            workQueue.pause();
+            io.getIO().to(socketId).emit('error-uploading', { message, status });
+            next(err);
+          }
+        });
+
+      Busboy.on('field', (field, value) =>
+        formHandler(() => {
+          fields = { ...fields, [field]: value };
+
+          if (bytesExpected > 15 * 1024 * 1024 * 1024)
+            throwErr('File is too big!. Max size per request is 15GB.', 422);
+
+          if (fields.srcEmail)
+            if (validator.isEmpty(fields.srcEmail) || !validator.isEmail(fields.srcEmail))
+              throwErr('Your email is required and must be a valid email.', 422);
+
+          if (fields.sendTo)
+            if (validator.isEmpty(fields.sendTo) || !validator.isEmail(fields.sendTo))
+              throwErr('Send to email is required and must be a valid email', 422);
+        })
+      );
+
+      Busboy.on('file', (_, file, { filename }) =>
+        formHandler(() => {
+          io.getIO().of('/storage-server').emit('alloc-storage-server', { dirId, filename });
           workQueue.pause();
-          io.getIO().to(socketId).emit('error-uploading', { message, status });
-          next(err);
-        }
+
+          executeFileStream = (res) => {
+            workQueue.start();
+            file.pipe(res);
+
+            file
+              .on('data', (chunk) => {
+                bytesReceived += chunk.length;
+                size += chunk.length;
+                io.getIO()
+                  .to(socketId)
+                  .emit('progress', {
+                    action: 'progressUpdate',
+                    progress: `${Math.round((bytesReceived / bytesExpected) * 100)}%`,
+                  });
+              })
+              .on('close', () => {
+                files.push({ filename, size });
+                size = 0;
+              });
+          };
+        })
+      );
+
+      Busboy.on('finish', () =>
+        formHandler(() => {
+          if (!fields.title) fields.title = files[0].filename;
+          req.body = { ...fields, dirId, files };
+          next();
+        })
+      );
+
+      Busboy.on('error', (err) => {
+        req.unpipe(Busboy);
+        io.getIO().to(socketId).emit('error-uploading', { err });
+        next(err);
       });
 
-    Busboy.on('field', (field, value) =>
-      formHandler(() => {
-        fields = { ...fields, [field]: value };
+      req.on('aborted', () => io.getIO().of('/storage-server').emit('unlink-file', { dirId }));
 
-        if (bytesExpected > 15 * 1024 * 1024 * 1024)
-          throwErr('File is too big!. Max size per request is 15GB.', 422);
-
-        if (fields.srcEmail)
-          if (validator.isEmpty(fields.srcEmail) || !validator.isEmail(fields.srcEmail))
-            throwErr('Your email is required and must be a valid email.', 422);
-
-        if (fields.sendTo)
-          if (validator.isEmpty(fields.sendTo) || !validator.isEmail(fields.sendTo))
-            throwErr('Send to email is required and must be a valid email', 422);
-      })
-    );
-
-    Busboy.on('file', (_, file, { filename }) =>
-      formHandler(() => {
-        io.getIO().of('/storage-server').emit('alloc-storage-server', { dirId, filename });
-
-        executeFileStream = () => {
-          file.pipe(response);
-
-          file.on('data', (chunk) => {
-            bytesReceived += chunk.length;
-            size += chunk.length;
-            io.getIO()
-              .to(socketId)
-              .emit('progress', {
-                action: 'progressUpdate',
-                progress: `${Math.round((bytesReceived / bytesExpected) * 100)}%`,
-              });
-          });
-        };
-
-        file.on('end', () => {
-          files.push({ filename, size });
-          size = 0;
-        });
-      })
-    );
-
-    Busboy.on('finish', () =>
-      formHandler(() => {
-        if (!fields.title) fields.title = files[0].filename;
-        req.body = { ...fields, dirId, files };
-        next();
-      })
-    );
-
-    Busboy.on('error', (err) => {
-      req.unpipe(Busboy);
-      io.getIO().to(socketId).emit('error-uploading', { err });
-      next(err);
-    });
-
-    req.on('aborted', () => io.getIO().of('/storage-server').emit('unlink-file', { dirId }));
-
-    req.pipe(Busboy);
+      req.pipe(Busboy);
+    } catch (err) {
+      throw err;
+    }
   },
 
   getTransferFiles(_, res) {
     try {
-      response = res;
-      executeFileStream();
+      executeFileStream(res);
       return res.attachment();
     } catch (err) {
       throw err;

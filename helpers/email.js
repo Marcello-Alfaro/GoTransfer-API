@@ -427,8 +427,7 @@ export default {
                     <tr>
                     <td style="padding: 30px; background-color: #ffffff">
                       <p style="margin: 0; font-style: italic;">
-                        Note: Once you download a file or choose the "Download All" option, the file(s) will be automatically removed from the server.
-                        All uploads will have an expiration time of 5 days. Once the time expires, the file(s) will be automatically removed. 
+                        Note: All uploads will have an expiration time of 5 days. Once the time expires, the file(s) will be automatically removed. 
                       </p>
                     </td>
                   </tr>
@@ -947,8 +946,7 @@ export default {
                   <tr>
                   <td style="padding: 30px; background-color: #ffffff">
                     <p style="margin: 0; font-style: italic;">
-                      Note: Once you download a file or choose the "Download All" option, the file(s) will be automatically removed from the server.
-                      All uploads will have an expiration time of 5 days. Once the time expires, the file(s) will be automatically removed. 
+                      Note: All uploads will have an expiration time of 5 days. Once the time expires, the file(s) will be automatically removed. 
                     </p>
                   </td>
                 </tr>
