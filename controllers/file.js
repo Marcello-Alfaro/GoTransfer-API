@@ -233,6 +233,7 @@ export default {
       const bytesExpected = +headers['content-length'];
       let bytesReceived = 0;
       let size = 0;
+      let speed = 0;
       let fields = {};
       const Busboy = busboy({ headers });
       const workQueue = new pQueue({ concurrency: 1 });
@@ -276,12 +277,14 @@ export default {
 
           executeFileStream = (res) => {
             workQueue.start();
+
             file.pipe(res);
 
             file
               .on('data', (chunk) => {
                 bytesReceived += chunk.length;
                 size += chunk.length;
+                speed += chunk.length;
                 io.getIO()
                   .to(socketId)
                   .emit('progress', {
@@ -297,8 +300,14 @@ export default {
         })
       );
 
+      const uploadSpeed = setInterval(() => {
+        io.getIO().to(socketId).emit('progress', { action: 'upload-speed', speed });
+        speed = 0;
+      }, 1000);
+
       Busboy.on('finish', () =>
         formHandler(() => {
+          clearInterval(uploadSpeed);
           if (!fields.title) fields.title = files[0].filename;
           req.body = { ...fields, dirId, files };
           next();
@@ -307,12 +316,14 @@ export default {
 
       Busboy.on('error', (err) => {
         req.unpipe(Busboy);
+        clearInterval(uploadSpeed);
         io.getIO().to(socketId).emit('error-uploading', { err });
         next(err);
       });
 
       req.on('aborted', () => {
         req.unpipe(Busboy);
+        clearInterval(uploadSpeed);
         io.getIO().of('/storage-server').emit('unlink-file', { dirId });
       });
 
