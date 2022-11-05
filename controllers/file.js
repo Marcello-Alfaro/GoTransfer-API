@@ -287,9 +287,9 @@ export default {
                 speed += chunk.length;
                 io.getIO()
                   .to(socketId)
-                  .emit('progress', {
-                    action: 'progressUpdate',
-                    progress: `${Math.round((bytesReceived / bytesExpected) * 100)}%`,
+                  .emit('transfer-status', {
+                    action: 'progress',
+                    progress: Math.round((bytesReceived / bytesExpected) * 100),
                   });
               })
               .on('close', () => {
@@ -301,7 +301,7 @@ export default {
       );
 
       const uploadSpeed = setInterval(() => {
-        io.getIO().to(socketId).emit('progress', { action: 'upload-speed', speed });
+        io.getIO().to(socketId).emit('transfer-status', { action: 'upload-speed', speed });
         speed = 0;
       }, 1000);
 
