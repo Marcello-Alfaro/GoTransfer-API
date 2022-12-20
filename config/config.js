@@ -1,9 +1,4 @@
-export const options = {
-  multiples: true,
-  allowEmptyFiles: false,
-  maxFileSize: 9000 * 1024 * 1024,
-  filename: (_, __, { originalFilename }) => originalFilename,
-};
+export const requests = [];
 export const SALT = 12;
 export const {
   PORT,

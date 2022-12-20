@@ -5,11 +5,11 @@ import { PORT, SENDGRID_API_KEY } from './config/config.js';
 import sequelize from './database/connection.js';
 import sgMail from '@sendgrid/mail';
 import User from './models/user.js';
-import NotAuthUser from './models/notAuthUser.js';
+import Attribute from './models/attribute.js';
 import Token from './models/token.js';
 import File from './models/file.js';
 import Dir from './models/dir.js';
-import UserDir from './models/userDir.js';
+import Fileshake from './models/fileshake.js';
 import authRoutes from './routes/auth.js';
 import fileRoutes from './routes/file.js';
 import cors from './middlewares/cors.js';
@@ -21,20 +21,14 @@ try {
   const app = express();
   sgMail.setApiKey(SENDGRID_API_KEY);
 
-  User.hasMany(Token, { foreignKey: 'userId', onDelete: 'CASCADE' });
-  Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
-
-  User.hasMany(Dir, { foreignKey: 'userId', onDelete: 'CASCADE' });
-  Dir.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
-
-  NotAuthUser.hasMany(Dir, { foreignKey: 'notAuthUserId', onDelete: 'CASCADE' });
-  Dir.belongsTo(NotAuthUser, { foreignKey: 'notAuthUserId', onDelete: 'CASCADE' });
+  User.hasOne(Attribute, { foreignKey: 'id', onDelete: 'CASCADE' });
+  Attribute.belongsTo(User, { foreignKey: 'id', onDelete: 'CASCADE' });
 
   Dir.hasMany(File, { foreignKey: 'dirId', onDelete: 'CASCADE' });
   File.belongsTo(Dir, { foreignKey: 'dirId', onDelete: 'CASCADE' });
 
-  Dir.belongsToMany(User, { through: UserDir, foreignKey: 'dirId', otherKey: 'userId' });
-  User.belongsToMany(Dir, { through: UserDir, foreignKey: 'userId', otherKey: 'dirId' });
+  User.belongsToMany(Dir, { through: Fileshake, foreignKey: 'userId', otherKey: 'dirId' });
+  Dir.belongsToMany(User, { through: Fileshake, foreignKey: 'dirId', otherKey: 'userId' });
 
   app.use(express.json());
 
@@ -50,7 +44,7 @@ try {
   console.log('Connection to database has been established successfully!');
   await sequelize.sync();
 
-  const server = app.listen(PORT ?? 3000, serverInit);
+  const server = app.listen(PORT ?? 3000);
 
   socket.init(server);
 

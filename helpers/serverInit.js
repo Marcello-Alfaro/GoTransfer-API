@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import NotAuthUser from '../models/notAuthUser.js';
+import User from '../models/user.js';
 import { PORT } from '../config/config.js';
 import Dir from '../models/dir.js';
 import File from '../models/file.js';
@@ -13,7 +13,7 @@ export default () => {
 
   setInterval(async () => {
     try {
-      const filesAbout2Expire = await NotAuthUser.findAll({
+      const filesAbout2Expire = await User.findAll({
         include: {
           model: Dir,
           where: { expire: { [Op.lt]: days(1) }, warned: false },
@@ -21,7 +21,7 @@ export default () => {
         },
       });
 
-      const expiredFiles = await NotAuthUser.findAll({
+      const expiredFiles = await User.findAll({
         include: {
           model: Dir,
           where: { expire: { [Op.lt]: Date.now() }, warned: true },

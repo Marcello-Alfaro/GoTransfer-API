@@ -1,21 +1,18 @@
+import { requests } from '../config/config.js';
 import throwErr from '../helpers/throwErr.js';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
-import User from '../models/user.js';
 import sgMail from '@sendgrid/mail';
 import formatFileSize from '../helpers/formatFileSize.js';
 import sequelize from '../database/connection.js';
 import busboy from 'busboy';
 import { v4 as uuidv4 } from 'uuid';
 import validator from 'validator';
-import NotAuthUser from '../models/notAuthUser.js';
+import User from '../models/user.js';
 import days from '../helpers/days.js';
 import io from '../socket.js';
 import email from '../helpers/email.js';
 import pQueue from 'p-queue';
-
-let executeFileStream;
-const downloadHandlers = [];
 
 export default {
   async postSendFile(req, res, next) {
@@ -24,16 +21,14 @@ export default {
       const { srcEmail, sendTo, title, message, dirId, files, expire = days(5) } = req.body;
 
       if (!isAuth) {
-        const notAuthUserExists = await NotAuthUser.findOne({
-          where: { srcEmail, dstEmail: sendTo },
+        const userExists = await User.findOne({
+          where: { email: srcEmail },
         });
 
-        const notAuthUser = !notAuthUserExists
-          ? await NotAuthUser.create({ srcEmail, dstEmail: sendTo })
-          : notAuthUserExists;
+        const user = !userExists ? await User.create({ email: srcEmail }) : userExists;
 
         const size = formatFileSize(files.reduce((accum, entry) => (accum += entry.size), 0));
-        const dir = await notAuthUser.createDir({ dirId, title, message, size, expire });
+        const dir = await user.createDir({ dirId, title, message, size, expire });
 
         const dirFiles = await Promise.all(
           files.map(
@@ -55,8 +50,8 @@ export default {
           Files: dirFiles,
         });
 
-        await sgMail.send(msgToSource);
-        await sgMail.send(msgToDest);
+        /* await sgMail.send(msgToSource);
+        await sgMail.send(msgToDest); */
 
         return res.status(200).json({ message: `Files sent successfully to ${sendTo}` });
       }
@@ -121,6 +116,7 @@ export default {
 
   async getFile(req, res, next) {
     try {
+      const request = uuidv4();
       const { dirId, fileId } = req.params;
       const { srcEmail, dstEmail } = req.query;
       if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
@@ -130,10 +126,10 @@ export default {
       if (!dir || !file)
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
 
-      io.getIO().of('/storage-server').emit('get-file', { dirId, fileId, name: file.name });
+      io.getIO().of('/storage-server').emit('get-file', { request, dirId, name: file.name });
 
-      downloadHandlers.push({
-        fileId,
+      requests.push({
+        request,
         res,
         async downloadFileCompleted() {
           if (dir.Files.length > 1) {
@@ -153,6 +149,7 @@ export default {
 
   async getAllFiles(req, res, next) {
     try {
+      const request = uuidv4();
       const { dirId } = req.params;
       const { srcEmail, dstEmail } = req.query;
       if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
@@ -166,10 +163,10 @@ export default {
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
       const { title, Files } = dir;
 
-      io.getIO().of('/storage-server').emit('get-all-files', { dirId, title, Files });
+      io.getIO().of('/storage-server').emit('get-all-files', { request, dirId, title, Files });
 
-      downloadHandlers.push({
-        dirId,
+      requests.push({
+        request,
         res,
         async downloadFileCompleted() {
           const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dir);
@@ -185,9 +182,9 @@ export default {
 
   getFileStorage(req, _, next) {
     try {
-      const { fileid: fileId } = req.headers;
-      const { res, downloadFileCompleted } = downloadHandlers.splice(
-        downloadHandlers.findIndex((entry) => (entry.fileId = fileId)),
+      const { request } = req.headers;
+      const { res, downloadFileCompleted } = requests.splice(
+        requests.findIndex((entry) => (entry.request = request)),
         1
       )[0];
 
@@ -207,9 +204,9 @@ export default {
 
   getAllFilesStorage(req, _, next) {
     try {
-      const { dirid: dirId } = req.headers;
-      const { res, downloadFileCompleted } = downloadHandlers.splice(
-        downloadHandlers.findIndex((entry) => (entry.dirId = dirId)),
+      const { request } = req.headers;
+      const { res, downloadFileCompleted } = requests.splice(
+        requests.findIndex((entry) => (entry.request = request)),
         1
       )[0];
 
@@ -272,31 +269,34 @@ export default {
 
       Busboy.on('file', (_, file, { filename }) =>
         formHandler(() => {
-          io.getIO().of('/storage-server').emit('alloc-storage-server', { dirId, filename });
-          workQueue.pause();
+          const request = uuidv4();
+          io.getIO()
+            .of('/storage-server')
+            .emit('alloc-storage-server', { request, dirId, filename });
 
-          executeFileStream = (res) => {
-            workQueue.start();
+          requests.push({
+            request,
+            redirectStream: (res) => {
+              file.pipe(res);
 
-            file.pipe(res);
-
-            file
-              .on('data', (chunk) => {
-                bytesReceived += chunk.length;
-                size += chunk.length;
-                speed += chunk.length;
-                io.getIO()
-                  .to(socketId)
-                  .emit('transfer-status', {
-                    action: 'progress',
-                    progress: Math.round((bytesReceived / bytesExpected) * 100),
-                  });
-              })
-              .on('close', () => {
-                files.push({ filename, size });
-                size = 0;
-              });
-          };
+              file
+                .on('data', (chunk) => {
+                  bytesReceived += chunk.length;
+                  size += chunk.length;
+                  speed += chunk.length;
+                  io.getIO()
+                    .to(socketId)
+                    .emit('transfer-status', {
+                      action: 'progress',
+                      progress: Math.round((bytesReceived / bytesExpected) * 100),
+                    });
+                })
+                .on('close', () => {
+                  files.push({ filename, size });
+                  size = 0;
+                });
+            },
+          });
         })
       );
 
@@ -333,9 +333,15 @@ export default {
     }
   },
 
-  getTransferFiles(_, res) {
+  getTransferFiles(req, res) {
     try {
-      executeFileStream(res);
+      const { request } = req.query;
+      const { redirectStream } = requests.splice(
+        requests.findIndex((entry) => (entry.request = request)),
+        1
+      )[0];
+
+      redirectStream(res);
       return res.attachment();
     } catch (err) {
       throw err;

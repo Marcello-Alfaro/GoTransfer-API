@@ -1,16 +1,16 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../database/connection.js';
 
-const UserDir = sequelize.define(
-  'Users_Dirs',
+const Fileshake = sequelize.define(
+  'Fileshakes',
   {
-    downloads: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
+    downloaded: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
       allowNull: false,
     },
   },
   { paranoid: true }
 );
 
-export default UserDir;
+export default Fileshake;
