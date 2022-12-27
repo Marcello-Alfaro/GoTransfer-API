@@ -1,4 +1,4 @@
-import { requests } from '../config/config.js';
+import Request from '../libs/request.js';
 import throwErr from '../helpers/throwErr.js';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
@@ -128,7 +128,7 @@ export default {
 
       io.getIO().of('/storage-server').emit('get-file', { request, dirId, name: file.name });
 
-      requests.push({
+      Request.add({
         request,
         res,
         async downloadFileCompleted() {
@@ -165,7 +165,7 @@ export default {
 
       io.getIO().of('/storage-server').emit('get-all-files', { request, dirId, title, Files });
 
-      requests.push({
+      Request.add({
         request,
         res,
         async downloadFileCompleted() {
@@ -183,10 +183,7 @@ export default {
   getFileStorage(req, _, next) {
     try {
       const { request } = req.headers;
-      const { res, downloadFileCompleted } = requests.splice(
-        requests.findIndex((entry) => (entry.request = request)),
-        1
-      )[0];
+      const { res, downloadFileCompleted } = Request.get(request);
 
       req.pipe(res);
 
@@ -205,10 +202,7 @@ export default {
   getAllFilesStorage(req, _, next) {
     try {
       const { request } = req.headers;
-      const { res, downloadFileCompleted } = requests.splice(
-        requests.findIndex((entry) => (entry.request = request)),
-        1
-      )[0];
+      const { res, downloadFileCompleted } = Request.get(request);
 
       req.pipe(res);
 
@@ -274,9 +268,9 @@ export default {
             .of('/storage-server')
             .emit('alloc-storage-server', { request, dirId, filename });
 
-          requests.push({
+          Request.add({
             request,
-            redirectStream: (res) => {
+            redirectFileStream(res) {
               file.pipe(res);
 
               file
@@ -336,12 +330,9 @@ export default {
   getTransferFiles(req, res) {
     try {
       const { request } = req.query;
-      const { redirectStream } = requests.splice(
-        requests.findIndex((entry) => (entry.request = request)),
-        1
-      )[0];
+      const { redirectFileStream } = Request.get(request);
 
-      redirectStream(res);
+      redirectFileStream(res);
       return res.attachment();
     } catch (err) {
       throw err;

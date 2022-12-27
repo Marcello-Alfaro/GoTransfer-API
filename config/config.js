@@ -1,4 +1,3 @@
-export const requests = [];
 export const SALT = 12;
 export const {
   PORT,
