@@ -1,56 +1,17 @@
 import express from 'express';
-import helmet from 'helmet';
-import compression from 'compression';
-import { PORT, SENDGRID_API_KEY } from './config/config.js';
-import sequelize from './database/connection.js';
-import sgMail from '@sendgrid/mail';
-import User from './models/user.js';
-import Attribute from './models/attribute.js';
-import Token from './models/token.js';
-import File from './models/file.js';
-import Dir from './models/dir.js';
-import Fileshake from './models/fileshake.js';
-import authRoutes from './routes/auth.js';
-import fileRoutes from './routes/file.js';
-import cors from './middlewares/cors.js';
-import errHandler from './middlewares/errHandler.js';
-import serverInit from './helpers/serverInit.js';
+import { PORT } from './config/config.js';
 import socket from './socket.js';
 
 try {
-  const app = express();
-  sgMail.setApiKey(SENDGRID_API_KEY);
+  socket.init(
+    (() => {
+      const app = express();
+      const server = app.listen(PORT ?? 3000);
+      return { app, server };
+    })()
+  );
 
-  User.hasOne(Attribute, { foreignKey: 'id', onDelete: 'CASCADE' });
-  Attribute.belongsTo(User, { foreignKey: 'id', onDelete: 'CASCADE' });
-
-  Dir.hasMany(File, { foreignKey: 'dirId', onDelete: 'CASCADE' });
-  File.belongsTo(Dir, { foreignKey: 'dirId', onDelete: 'CASCADE' });
-
-  User.belongsToMany(Dir, { through: Fileshake, foreignKey: 'userId', otherKey: 'dirId' });
-  Dir.belongsToMany(User, { through: Fileshake, foreignKey: 'dirId', otherKey: 'userId' });
-
-  app.use(express.json());
-
-  app.use(compression());
-  app.use(helmet({ crossOriginResourcePolicy: false }));
-  app.use(cors);
-  app.use(express.static('public'));
-  app.use('/auth', authRoutes);
-  app.use('/files', fileRoutes);
-  app.use(errHandler);
-
-  await sequelize.authenticate();
-  console.log('Connection to database has been established successfully!');
-  await sequelize.sync();
-
-  const server = app.listen(PORT ?? 3000);
-
-  socket.init(server);
-
-  process.on('uncaughtException', (err) => {
-    console.error(err);
-  });
+  process.on('uncaughtException', (err) => console.error(err));
 } catch (err) {
   console.error(err);
 }

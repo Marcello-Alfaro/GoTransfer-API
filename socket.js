@@ -1,3 +1,4 @@
+import serverInit from './helpers/serverInit.js';
 import { Server } from 'socket.io';
 import { CORS_ORIGIN } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
@@ -7,8 +8,8 @@ let socket;
 let storageServerSocket;
 
 export default {
-  init(httpServer) {
-    io = new Server(httpServer, {
+  init({ app, server }) {
+    io = new Server(server, {
       cors: {
         origin: CORS_ORIGIN,
         methods: ['GET', 'POST'],
@@ -18,6 +19,7 @@ export default {
       console.log('A client has connected!');
       socket = sck;
     });
+    console.log('Establishing connection with storage server...');
     io.of('/storage-server')
       .use(async (socket, next) => {
         try {
@@ -31,9 +33,14 @@ export default {
           next(err);
         }
       })
-      .on('connection', (socket) => {
-        console.log('Connection to storage server established!');
-        storageServerSocket = socket;
+      .on('connection', async (socket) => {
+        try {
+          console.log('Connection with storage server established!');
+          storageServerSocket = socket;
+          await serverInit(app);
+        } catch (err) {
+          throw err;
+        }
       });
     return io;
   },
@@ -50,3 +57,5 @@ export default {
     return storageServerSocket;
   },
 };
+
+process.on('uncaughtException', (err) => console.error(err));
