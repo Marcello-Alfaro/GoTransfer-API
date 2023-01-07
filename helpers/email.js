@@ -393,7 +393,9 @@ export default {
                           <p style="margin-top: 0; margin-bottom: 18px"></p>
                           <p style="margin: 0">
                           ${
-                            dir.Files.length > 1
+                            dir.Files.length > 1 && dir.Files.find((file) => file.rawsize > 2 ** 32)
+                              ? ''
+                              : dir.Files.length > 1
                               ? `<a style="background: #0b7285;
                                           text-decoration: none;
                                           padding: 10px 25px;

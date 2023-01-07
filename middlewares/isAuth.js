@@ -8,7 +8,7 @@ export default async (req, _, next) => {
       req.isAuth = false;
       return next();
     }
-    const { authorization = req.query.Authorization } = req.headers;
+    const { authorization } = req.headers;
     if (!authorization) throwErr('No valid authorization header present!', 401);
     const token = authorization.split(' ')[1];
     const { name, lastname, username } = await jwtVerify(token);

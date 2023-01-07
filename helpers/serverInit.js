@@ -4,7 +4,6 @@ import socket from '../socket.js';
 import sgMail from '@sendgrid/mail';
 import User from '../models/user.js';
 import Attribute from '../models/attribute.js';
-import Token from '../models/token.js';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
 import Fileshake from '../models/fileshake.js';
@@ -28,6 +27,9 @@ export default async (server) => {
     User.hasOne(Attribute, { foreignKey: 'id', onDelete: 'CASCADE' });
     Attribute.belongsTo(User, { foreignKey: 'id', onDelete: 'CASCADE' });
 
+    User.hasMany(Dir, { foreignKey: 'userId', onDelete: 'CASCADE' });
+    Dir.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
+
     Dir.hasMany(File, { foreignKey: 'dirId', onDelete: 'CASCADE' });
     File.belongsTo(Dir, { foreignKey: 'dirId', onDelete: 'CASCADE' });
 
@@ -35,7 +37,7 @@ export default async (server) => {
     Dir.belongsToMany(User, { through: Fileshake, foreignKey: 'dirId', otherKey: 'userId' });
 
     server.use(express.json());
-
+    server.use(express.raw({ type: 'application/octet-stream', limit: '50mb' }));
     server.use(compression());
     server.use(helmet({ crossOriginResourcePolicy: false }));
     server.use(cors);

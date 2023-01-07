@@ -12,7 +12,6 @@ const File = sequelize.define(
     },
     fileId: {
       type: DataTypes.UUID,
-      defaultValue: uuidv4,
       allowNull: false,
     },
     name: {
@@ -21,6 +20,10 @@ const File = sequelize.define(
     },
     size: {
       type: DataTypes.STRING,
+      allowNull: false,
+    },
+    rawsize: {
+      type: DataTypes.DOUBLE,
       allowNull: false,
     },
   },
