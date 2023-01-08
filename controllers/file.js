@@ -268,7 +268,7 @@ export default {
 
       io.getIO()
         .of('/storage-server')
-        .emit('alloc-storage-server', { dirId, filename, payload: req.body });
+        .emit('alloc-storage-server', { dirId, filename, chunk: req.body });
 
       res.json('ok');
     } catch (err) {

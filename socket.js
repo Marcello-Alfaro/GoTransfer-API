@@ -8,7 +8,7 @@ let socket;
 let storageServerSocket;
 
 export default {
-  init({ server }) {
+  init(server) {
     io = new Server(server, {
       cors: {
         origin: CORS_ORIGIN,
