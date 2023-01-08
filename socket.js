@@ -1,4 +1,3 @@
-import serverInit from './helpers/serverInit.js';
 import { Server } from 'socket.io';
 import { CORS_ORIGIN } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
@@ -41,6 +40,7 @@ export default {
 
     return io;
   },
+
   getIO() {
     if (!io) throwErr('Socket.io not initialized!');
     return io;
