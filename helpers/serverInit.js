@@ -1,54 +1,16 @@
-import express from 'express';
-import sequelize from '../database/connection.js';
 import socket from '../socket.js';
 import sgMail from '@sendgrid/mail';
 import User from '../models/user.js';
-import Attribute from '../models/attribute.js';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
-import Fileshake from '../models/fileshake.js';
-import authRoutes from '../routes/auth.js';
-import fileRoutes from '../routes/file.js';
-import cors from '../middlewares/cors.js';
-import helmet from 'helmet';
-import compression from 'compression';
-import errHandler from '../middlewares/errHandler.js';
 import { Op } from 'sequelize';
-import { PORT, SENDGRID_API_KEY } from '../config/config.js';
+import { PORT } from '../config/config.js';
 import days from './days.js';
 import email from './email.js';
 
-export default async (server) => {
+export default () => {
   try {
     console.log(`Server started on port ${PORT ?? 3000}`);
-
-    sgMail.setApiKey(SENDGRID_API_KEY);
-
-    User.hasOne(Attribute, { foreignKey: 'id', onDelete: 'CASCADE' });
-    Attribute.belongsTo(User, { foreignKey: 'id', onDelete: 'CASCADE' });
-
-    User.hasMany(Dir, { foreignKey: 'userId', onDelete: 'CASCADE' });
-    Dir.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
-
-    Dir.hasMany(File, { foreignKey: 'dirId', onDelete: 'CASCADE' });
-    File.belongsTo(Dir, { foreignKey: 'dirId', onDelete: 'CASCADE' });
-
-    User.belongsToMany(Dir, { through: Fileshake, foreignKey: 'userId', otherKey: 'dirId' });
-    Dir.belongsToMany(User, { through: Fileshake, foreignKey: 'dirId', otherKey: 'userId' });
-
-    server.use(express.json());
-    server.use(express.raw({ type: 'application/octet-stream', limit: '50mb' }));
-    server.use(compression());
-    server.use(helmet({ crossOriginResourcePolicy: false }));
-    server.use(cors);
-    server.use(express.static('public'));
-    server.use('/auth', authRoutes);
-    server.use('/files', fileRoutes);
-    server.use(errHandler);
-
-    await sequelize.authenticate();
-    console.log('Connection to database has been established successfully!');
-    await sequelize.sync();
 
     setInterval(async () => {
       try {

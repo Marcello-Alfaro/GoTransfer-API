@@ -8,18 +8,19 @@ let socket;
 let storageServerSocket;
 
 export default {
-  init({ app, server }) {
+  init({ server }) {
     io = new Server(server, {
       cors: {
         origin: CORS_ORIGIN,
         methods: ['GET', 'POST'],
       },
     });
+
     io.on('connection', (sck) => {
       console.log('A client has connected!');
       socket = sck;
     });
-    console.log('Establishing connection with storage server...');
+
     io.of('/storage-server')
       .use(async (socket, next) => {
         try {
@@ -33,25 +34,23 @@ export default {
           next(err);
         }
       })
-      .on('connection', async (socket) => {
-        try {
-          console.log('Connection with storage server established!');
-          storageServerSocket = socket;
-          await serverInit(app);
-        } catch (err) {
-          throw err;
-        }
+      .on('connection', (socket) => {
+        console.log('Connection with storage server established!');
+        storageServerSocket = socket;
       });
+
     return io;
   },
   getIO() {
     if (!io) throwErr('Socket.io not initialized!');
     return io;
   },
+
   getSocket() {
     if (!io) throwErr('Socket.io not initialized!');
     return socket;
   },
+
   getServerSocket() {
     if (!io) throwErr('Socket.io not initialized!');
     return storageServerSocket;
