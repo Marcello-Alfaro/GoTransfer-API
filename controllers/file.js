@@ -55,10 +55,10 @@ export default {
           Files: dirFiles,
         });
 
-        await sgMail.send(msgToSource);
-        await sgMail.send(msgToDest);
+        /* await sgMail.send(msgToSource);
+        await sgMail.send(msgToDest); */
 
-        return res.status(200).json({ message: `Files sent successfully to ${sendTo}` });
+        return res.status(201).json({ message: `Files sent successfully to ${sendTo}` });
       }
     } catch (err) {
       io.getIO().of('/storage-server').emit('unlink-file', { dirId: req.body.dirId });
@@ -239,7 +239,7 @@ export default {
     res.status(200).json({ requestId, dirId });
   },
 
-  fileHandler(req, res, next) {
+  async fileHandler(req, res, next) {
     try {
       const { fileComplete, complete } = req.body;
 
@@ -264,13 +264,17 @@ export default {
         return next();
       }
 
-      const { dirId, filename } = req.query;
+      const { dirId, filename, part } = req.query;
 
       io.getIO()
         .of('/storage-server')
-        .emit('alloc-storage-server', { dirId, filename, chunk: req.body });
+        .emit('alloc-storage-server', { dirId, filename, part, chunk: req.body });
 
-      res.json('ok');
+      const ack = await new Promise((res, _) =>
+        io.getServerSocket().once(`${filename}${part}`, (ack) => res(ack))
+      );
+
+      res.status(200).json(ack);
     } catch (err) {
       throw err;
     }

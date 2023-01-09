@@ -33,7 +33,7 @@ try {
   Dir.belongsToMany(User, { through: Fileshake, foreignKey: 'dirId', otherKey: 'userId' });
 
   app.use(express.json());
-  app.use(express.raw({ type: 'application/octet-stream', limit: '50mb' }));
+  app.use(express.raw({ type: 'application/octet-stream', limit: '15mb' }));
   app.use(compression());
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(cors);
