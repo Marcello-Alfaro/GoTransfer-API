@@ -55,8 +55,8 @@ export default {
           Files: dirFiles,
         });
 
-        /* await sgMail.send(msgToSource);
-        await sgMail.send(msgToDest); */
+        await sgMail.send(msgToSource);
+        await sgMail.send(msgToDest);
 
         return res.status(201).json({ message: `Files sent successfully to ${sendTo}` });
       }
