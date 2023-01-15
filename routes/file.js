@@ -10,8 +10,8 @@ router.get('/download/:dirId/:fileId', isAuth, fileController.getFile);
 router.get('/download/:dirId', isAuth, fileController.getAllFiles);
 
 router.post('/upload/allocate-file', isAuth, fileController.getAllocateFile);
-router.post('/upload', isAuth, socketId, fileController.fileHandler, fileController.postSendFile);
+router.put('/upload', isAuth, socketId, fileController.fileHandler, fileController.postSendFile);
 router.post('/get-file', isAuth, fileController.getFileStorage);
-router.post('/get-all-files', isAuth, fileController.getAllFilesStorage);
+router.put('/get-all-files', isAuth, fileController.getAllFilesStorage);
 
 export default router;

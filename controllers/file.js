@@ -1,4 +1,5 @@
 import Request from '../libs/request.js';
+import { MAX_FILE_SIZE } from '../config/config.js';
 import throwErr from '../helpers/throwErr.js';
 import File from '../models/file.js';
 import Dir from '../models/dir.js';
@@ -127,11 +128,14 @@ export default {
       if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
 
       const dir = await Dir.findOne({ where: { dirId }, include: File });
-      const file = await File.findOne({ where: { fileId } });
+      const file = await File.findOne({
+        where: { fileId },
+        attributes: ['fileId', 'name', 'rawsize'],
+      });
       if (!dir || !file)
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
 
-      io.getIO().of('/storage-server').emit('get-file', { requestId, dirId, fileId });
+      io.getIO().of('/storage-server').emit('get-file', { requestId, dirId, file });
 
       Request.add({
         requestId,
@@ -208,7 +212,7 @@ export default {
     try {
       const { requestid: requestId } = req.headers;
       const { res, downloadFileCompleted } = Request.get(requestId);
-
+      console.log(req);
       req.pipe(res);
 
       res.on('finish', async () => {
@@ -224,12 +228,13 @@ export default {
   },
 
   getAllocateFile(req, res) {
-    const { srcEmail, sendTo } = req.body;
+    const { srcEmail, sendTo, totalSize } = req.body;
 
     if (validator.isEmpty(srcEmail) || !validator.isEmail(srcEmail))
       throwErr('Your email is required and must be a valid email.', 422);
     if (validator.isEmpty(sendTo) || !validator.isEmail(sendTo))
       throwErr('Destination email is required and must be a valid email.', 422);
+    if (totalSize > MAX_FILE_SIZE) throwErr('File is too big! Max file size is 6GB', 422);
 
     const requestId = uuidv4();
     const dirId = uuidv4();
