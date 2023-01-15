@@ -11,7 +11,6 @@ router.get('/download/:dirId', isAuth, fileController.getAllFiles);
 
 router.post('/upload/allocate-file', isAuth, fileController.getAllocateFile);
 router.put('/upload', isAuth, socketId, fileController.fileHandler, fileController.postSendFile);
-router.post('/get-file', isAuth, fileController.getFileStorage);
-router.put('/get-all-files', isAuth, fileController.getAllFilesStorage);
+router.put('/get-file', isAuth, fileController.getFileStorage);
 
 export default router;

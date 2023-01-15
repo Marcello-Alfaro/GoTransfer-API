@@ -13,6 +13,7 @@ import User from '../models/user.js';
 import days from '../helpers/days.js';
 import io from '../socket.js';
 import email from '../helpers/email.js';
+import pipeline from '../utils/pipeline.js';
 
 export default {
   async postSendFile(req, res, next) {
@@ -128,19 +129,18 @@ export default {
       if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
 
       const dir = await Dir.findOne({ where: { dirId }, include: File });
-      const file = await File.findOne({
-        where: { fileId },
-        attributes: ['fileId', 'name', 'rawsize'],
-      });
+      const file = await File.findOne({ where: { fileId }, attributes: ['name'] });
       if (!dir || !file)
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
 
-      io.getIO().of('/storage-server').emit('get-file', { requestId, dirId, file });
+      io.getIO()
+        .of('/storage-server')
+        .emit('get-file', { requestId, dirId, type: 'single', fileId });
 
       Request.add({
         requestId,
         res,
-        async downloadFileCompleted() {
+        async fileDownloadCompleted() {
           if (dir.Files.length > 1) {
             const msgToSource = email.srcPartialDownload(srcEmail, dstEmail, dir, file);
             return await sgMail.send(msgToSource);
@@ -172,12 +172,14 @@ export default {
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
       const { title, Files } = dir;
 
-      io.getIO().of('/storage-server').emit('get-all-files', { requestId, dirId, title, Files });
+      io.getIO()
+        .of('/storage-server')
+        .emit('get-file', { requestId, type: 'multiple', dirId, title, Files });
 
       Request.add({
         requestId,
         res,
-        async downloadFileCompleted() {
+        async fileDownloadCompleted() {
           const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dir);
           await sgMail.send(msgToSource);
         },
@@ -189,41 +191,16 @@ export default {
     }
   },
 
-  getFileStorage(req, _, next) {
+  async getFileStorage(req, _, next) {
     try {
       const { requestid: requestId } = req.headers;
-      const { res, downloadFileCompleted } = Request.get(requestId);
+      const { res, fileDownloadCompleted } = Request.get(requestId);
 
-      req.pipe(res);
+      await pipeline(req, res);
 
-      res.on('finish', async () => {
-        try {
-          await downloadFileCompleted();
-        } catch (err) {
-          next(err);
-        }
-      });
+      await fileDownloadCompleted();
     } catch (err) {
-      throw err;
-    }
-  },
-
-  getAllFilesStorage(req, _, next) {
-    try {
-      const { requestid: requestId } = req.headers;
-      const { res, downloadFileCompleted } = Request.get(requestId);
-      console.log(req);
-      req.pipe(res);
-
-      res.on('finish', async () => {
-        try {
-          await downloadFileCompleted();
-        } catch (err) {
-          next(err);
-        }
-      });
-    } catch (err) {
-      throw err;
+      next(err);
     }
   },
 
