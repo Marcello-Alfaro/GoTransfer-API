@@ -13,7 +13,7 @@ import User from '../models/user.js';
 import days from '../helpers/days.js';
 import io from '../socket.js';
 import email from '../helpers/email.js';
-import pipeline from '../utils/pipeline.js';
+import { pipeline } from 'stream/promises';
 
 export default {
   async postSendFile(req, res, next) {
