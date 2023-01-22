@@ -1,5 +1,3 @@
-export const SALT = 12;
-export const MAX_FILE_SIZE = 6 * 1024 ** 3;
 export const {
   PORT,
   JWT_SECRET,
@@ -13,3 +11,10 @@ export const {
   DB_DIALECT,
   CORS_ORIGIN,
 } = process.env;
+export const SALT = 12;
+export const MAX_FILE_SIZE = 6 * 1024 ** 3;
+export const CORS_OPTIONS = {
+  origin: CORS_ORIGIN,
+  methods: ['GET', 'POST', 'PUT'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'socketId'],
+};

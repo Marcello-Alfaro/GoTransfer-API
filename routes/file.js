@@ -9,8 +9,8 @@ router.get('/transfer/storage-server', isAuth, fileController.getTransferFiles);
 router.get('/download/:dirId/:fileId', isAuth, fileController.getFile);
 router.get('/download/:dirId', isAuth, fileController.getAllFiles);
 
-router.post('/upload/allocate-file', isAuth, fileController.getAllocateFile);
-router.put('/upload', isAuth, socketId, fileController.fileHandler, fileController.postSendFile);
+router.post('/upload/allocate-file', fileController.getAllocateFile);
+router.put('/upload', fileController.fileHandler, fileController.postSendFile);
 router.put('/get-file', isAuth, fileController.getFileStorage);
 
 export default router;

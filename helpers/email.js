@@ -33,11 +33,11 @@ p {
 
 .feature-icon {
   width: 75%;
-  color: #0b7285;
+  color: #228be6;
 }
 
 .features-icon {
-  color: #0b7285;
+  color: #228be6;
   width: 10%;
 }
 
@@ -63,7 +63,7 @@ p {
 
 a:link, a:visited {
   text-decoration: none;
-  color: #0b7285;
+  color: #228be6;
 }
 
 ol {
@@ -80,10 +80,10 @@ ol li:last-of-type {
 </style>`;
 
 export default {
-  srcFileSent(srcEmail, dstEmail, dir) {
-    const shortVer = dstEmail.split('@')[0];
+  srcFileSent(sender, receiver, dir) {
+    const shortVer = receiver.split('@')[0];
     return {
-      to: srcEmail,
+      to: sender,
       from: FROM_EMAIL,
       subject: `"${dir.title}" was sent to ${shortVer}`,
       html: `<!DOCTYPE html>
@@ -251,10 +251,182 @@ export default {
       `,
     };
   },
-  dstFileSent(srcEmail, dstEmail, dir) {
-    const shortVer = srcEmail.split('@')[0];
+  srcFileSentMultiple(sender, numReceivers, dir) {
     return {
-      to: dstEmail,
+      to: sender,
+      from: FROM_EMAIL,
+      subject: `"${dir.title}" was successfully sent to ${numReceivers} receivers`,
+      html: `<!DOCTYPE html>
+      <html
+        lang="en"
+        xmlns="http://www.w3.org/1999/xhtml"
+        xmlns:o="urn:schemas-microsoft-com:office:office"
+      >
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <meta name="x-apple-disable-message-reformatting" />
+          <title></title>
+          ${styles}
+        </head>
+        <body style="margin: 0; padding: 0; word-spacing: normal; background-color: #939297">
+          <div
+            role="article"
+            aria-roledescription="email"
+            lang="en"
+            style="
+              text-size-adjust: 100%;
+              -webkit-text-size-adjust: 100%;
+              -ms-text-size-adjust: 100%;
+              background-color: #939297;
+            "
+          >
+            <table role="presentation" style="width: 100%; border: none; border-spacing: 0">
+              <tr>
+                <td align="center" style="padding: 0">
+                  <table
+                    role="presentation"
+                    style="
+                      width: 94%;
+                      max-width: 600px;
+                      border: none;
+                      border-spacing: 0;
+                      text-align: left;
+                      font-family: Arial, sans-serif;
+                      font-size: 16px;
+                      line-height: 22px;
+                      color: #363636;
+                    "
+                  >
+                    <tr>
+                      <td style="padding: 30px; background-color: #ffffff">
+                      <img
+                      src="${API_URL}/images/logo.png"
+                      width="250"
+                      alt="Logo"
+                      style="
+                        width: 250px;
+                        max-width: 80%;
+                        height: auto;
+                        border: none;
+                        text-decoration: none;
+                        color: #ffffff;
+                        display: block;
+                        margin: 0 auto;
+                        margin-bottom: 25px;
+                      "
+                  />
+                        <h1
+                          style="
+                            margin-top: 0;
+                            margin-bottom: 16px;
+                            font-size: 26px;
+                            line-height: 32px;
+                            font-weight: bold;
+                            letter-spacing: -0.02em;
+                          "
+                        >
+                        Hi there, "${
+                          dir.title
+                        }" was sent successfully to ${numReceivers} receivers with ${
+        dir.Files.length > 1 ? `${dir.Files.length} files` : `1 file`
+      }:
+                        </h1>
+                        <p>Total size: ${dir.size}</p>
+                      </td>
+                    </tr>         
+                    <tr>
+                      <td
+                        style="
+                          padding: 35px 30px 11px 30px;
+                          font-size: 0;
+                          background-color: #ffffff;
+                          border-bottom: 1px solid #f0f0f5;
+                          border-color: rgba(201, 201, 207, 0.35);
+                        "
+                      >
+                      <div
+                      class="col-sml"
+                      style="
+                        display: inline-block;
+                        width: 100%;
+                        max-width: 145px;
+                        vertical-align: top;
+                        text-align: left;
+                        font-family: Arial, sans-serif;
+                        font-size: 14px;
+                        color: #363636;
+                      "
+                    >
+                      <img
+                        src="${API_URL}/images/upload.png"
+                        width="115"
+                        alt="upload_icon"
+                        style="width: 115px; max-width: 80%; margin-bottom: 20px"
+                      />
+                    </div>
+                        <div
+                          class="col-lge"
+                          style="
+                            display: inline-block;
+                            width: 100%;
+                            max-width: 395px;
+                            vertical-align: top;
+                            padding-bottom: 20px;
+                            font-family: Arial, sans-serif;
+                            font-size: 16px;
+                            line-height: 22px;
+                            color: #363636;
+                          "
+                        >
+                          <ol>
+                          ${dir.Files.reduce((accum, entry) => {
+                            accum += `<li><strong>${entry.name}</strong>
+                            <p class="size">size: ${entry.size}</p>
+                            </li>`;
+                            return accum;
+                          }, '')}
+                          </ol>
+                          <p style="margin-top: 0; margin-bottom: 18px"></p>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                    <td style="padding: 30px; background-color: #ffffff">
+                      <p style="margin: 0;">
+                        We will notify you when the receiver downloads any of your files.
+                      </p>
+                    </td>
+                  </tr>
+                    <tr>
+                      <td
+                        style="
+                          padding: 30px;
+                          text-align: center;
+                          font-size: 12px;
+                          background-color: #404040;
+                          color: #cccccc;
+                        "
+                      >
+                        <p style="margin: 0; font-size: 14px; line-height: 20px">
+                          Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </body>
+      </html>
+      `,
+    };
+  },
+  dstFileSent(sender, receiver, dir) {
+    const shortVer = sender.split('@')[0];
+    return {
+      to: receiver,
       from: FROM_EMAIL,
       subject: `${shortVer} sent you "${dir.title}" with ${
         dir.Files.length > 1 ? `${dir.Files.length} files` : `1 file`
@@ -384,7 +556,7 @@ export default {
                         >
                           <ol>
                           ${dir.Files.reduce((accum, entry) => {
-                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?isAuth=false&srcEmail=${srcEmail}&dstEmail=${dstEmail}" download>${entry.name}</a>
+                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?isAuth=false&sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
                             <p class="size">size: ${entry.size}</p>
                             </li>`;
                             return accum;
@@ -396,27 +568,27 @@ export default {
                             dir.Files.length > 1 && dir.Files.find((file) => file.rawsize > 2 ** 32)
                               ? ''
                               : dir.Files.length > 1
-                              ? `<a style="background: #0b7285;
+                              ? `<a style="background: #228be6;
                                           text-decoration: none;
                                           padding: 10px 25px;
                                           color: #fff;
                                           border-radius: 4px;
                                           display: inline-block;
                                           mso-padding-alt: 0;
-                                          text-underline-color: #0b7285;" 
-                            href="${API_URL}/files/download/${dir.dirId}?isAuth=false&srcEmail=${srcEmail}&dstEmail=${dstEmail}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                                          text-underline-color: #228be6;" 
+                            href="${API_URL}/files/download/${dir.dirId}?isAuth=false&sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                             >Download All</span
                           ></a
                         >`
-                              : `<a style="background: #0b7285;
+                              : `<a style="background: #228be6;
                                           text-decoration: none;
                                           padding: 10px 25px;
                                           color: #fff;
                                           border-radius: 4px;
                                           display: inline-block;
                                           mso-padding-alt: 0;
-                                          text-underline-color: #0b7285;" 
-                              href="${API_URL}/files/download/${dir.dirId}/${dir.Files[0].fileId}?isAuth=false&srcEmail=${srcEmail}&dstEmail=${dstEmail}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                                          text-underline-color: #228be6;" 
+                              href="${API_URL}/files/download/${dir.dirId}/${dir.Files[0].fileId}?isAuth=false&sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                               >Download File</span
                             ></a
                           >`
@@ -458,10 +630,10 @@ export default {
       `,
     };
   },
-  srcPartialDownload(srcEmail, dstEmail, dir, file) {
-    const shortVer = dstEmail.split('@')[0];
+  srcPartialDownload(sender, receiver, dir, file) {
+    const shortVer = receiver.split('@')[0];
     return {
-      to: srcEmail,
+      to: sender,
       from: FROM_EMAIL,
       subject: `${shortVer} partially downloaded "${dir.title}"`,
       html: `<!DOCTYPE html>
@@ -625,10 +797,10 @@ export default {
       `,
     };
   },
-  srcDownloadAll(srcEmail, dstEmail, dir) {
-    const shortVer = dstEmail.split('@')[0];
+  srcDownloadAll(sender, receiver, dir) {
+    const shortVer = receiver.split('@')[0];
     return {
-      to: srcEmail,
+      to: sender,
       from: FROM_EMAIL,
       subject: `${shortVer} downloaded "${dir.title}" and all its files`,
       html: `<!DOCTYPE html>
@@ -795,10 +967,10 @@ export default {
             `,
     };
   },
-  dstFilesAbout2Expire(srcEmail, dstEmail, dir) {
-    const shortVer = srcEmail.split('@')[0];
+  dstFilesAbout2Expire(sender, receiver, dir) {
+    const shortVer = sender.split('@')[0];
     return {
-      to: dstEmail,
+      to: receiver,
       from: FROM_EMAIL,
       subject: `"${dir.title}" sent by ${shortVer} is about to expire!`,
       html: `<!DOCTYPE html>
@@ -925,7 +1097,7 @@ export default {
                         >
                           <ol>
                           ${dir.Files.reduce((accum, entry) => {
-                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?isAuth=false&srcEmail=${srcEmail}&dstEmail=${dstEmail}" download>${entry.name}</a>
+                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?isAuth=false&sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
                             <p class="size">size: ${entry.size}</p>
                             </li>`;
                             return accum;
@@ -935,7 +1107,7 @@ export default {
                           <p style="margin: 0">
                           ${
                             dir.Files.length > 1
-                              ? `<a class="btn-download-all" href="${API_URL}/files/download/${dir.dirId}?isAuth=false&srcEmail=${srcEmail}&dstEmail=${dstEmail}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                              ? `<a class="btn-download-all" href="${API_URL}/files/download/${dir.dirId}?isAuth=false&sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                             >Download All</span
                           ></a
                         >`
@@ -977,9 +1149,9 @@ export default {
     `,
     };
   },
-  srcFileExpired(srcEmail, dstEmail, dir) {
+  srcFileExpired(sender, receiver, dir) {
     return {
-      to: srcEmail,
+      to: sender,
       from: FROM_EMAIL,
       subject: `Your file "${dir.title}" expired!`,
       html: `<!DOCTYPE html>
@@ -1055,6 +1227,188 @@ export default {
                       Hello, this is email is to nofify you that "${
                         dir.title
                       }" with the following files has expired:
+                      </h1>
+                      <p>Total size: ${dir.size}</p>
+                  </tr>
+                  <tr>
+                    <td
+                      style="
+                        padding: 35px 30px 11px 30px;
+                        font-size: 0;
+                        background-color: #ffffff;
+                        border-bottom: 1px solid #f0f0f5;
+                        border-color: rgba(201, 201, 207, 0.35);
+                      "
+                    >
+                    <div
+                    class="col-sml"
+                    style="
+                      display: inline-block;
+                      width: 100%;
+                      max-width: 145px;
+                      vertical-align: top;
+                      text-align: left;
+                      font-family: Arial, sans-serif;
+                      font-size: 14px;
+                      color: #363636;
+                    "
+                  >
+                    <img
+                      src="${API_URL}/images/expire.png"
+                      width="115"
+                      alt="expire_icon"
+                      style="width: 115px; max-width: 80%; margin-bottom: 20px"
+                    />
+                  </div>
+                      <div
+                        class="col-lge"
+                        style="
+                          display: inline-block;
+                          width: 100%;
+                          max-width: 395px;
+                          vertical-align: top;
+                          padding-bottom: 20px;
+                          font-family: Arial, sans-serif;
+                          font-size: 16px;
+                          line-height: 22px;
+                          color: #363636;
+                        "
+                      >
+                        <ol>
+                        ${dir.Files.reduce(
+                          (accum, entry) =>
+                            (accum += `${
+                              !entry.deletedAt
+                                ? `<li><strong>${entry.name}</strong> - <span class="downloadedAt">Expired</span>`
+                                : `<li><strong class="downloaded">${
+                                    entry.name
+                                  }</strong> - <span class="downloadedAt">${
+                                    entry.deletedAt.toISOString().split('T')[0]
+                                  }</span>`
+                            }
+                          <p class="size">size: ${entry.size}</p>
+                          </li>`),
+
+                          ''
+                        )}
+                        </ol>
+                        <p style="margin-top: 0; margin-bottom: 18px"></p>
+                        <p style="margin: 0"></p>
+                      </div>
+                      
+                    </td>
+                  </tr>
+                  <tr>
+                  <td style="padding: 30px; background-color: #ffffff">
+                    <p style="margin: 0; font-style: italic;">
+                    We will notify you when the receiver downloads any of your files.
+                    </p>
+                  </td>
+                </tr>
+                  <tr>
+                    <td
+                      style="
+                        padding: 30px;
+                        text-align: center;
+                        font-size: 12px;
+                        background-color: #404040;
+                        color: #cccccc;
+                      "
+                    >
+                      <p style="margin: 0; font-size: 14px; line-height: 20px">
+                        Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </body>
+    </html>
+    `,
+    };
+  },
+
+  dstFileExpired(sender, receiver, dir) {
+    const shortVer = sender.split('@')[0];
+    return {
+      to: receiver,
+      from: FROM_EMAIL,
+      subject: `File "${dir.title}" expired!`,
+      html: `<!DOCTYPE html>
+    <html
+      lang="en"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:o="urn:schemas-microsoft-com:office:office"
+    >
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="x-apple-disable-message-reformatting" />
+        <title></title>
+        ${styles}
+      </head>
+      <body style="margin: 0; padding: 0; word-spacing: normal; background-color: #939297">
+        <div
+          role="article"
+          aria-roledescription="email"
+          lang="en"
+          style="
+            text-size-adjust: 100%;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            background-color: #939297;
+          "
+        >
+          <table role="presentation" style="width: 100%; border: none; border-spacing: 0">
+            <tr>
+              <td align="center" style="padding: 0">
+                <table
+                  role="presentation"
+                  style="
+                    width: 94%;
+                    max-width: 600px;
+                    border: none;
+                    border-spacing: 0;
+                    text-align: left;
+                    font-family: Arial, sans-serif;
+                    font-size: 16px;
+                    line-height: 22px;
+                    color: #363636;
+                  "
+                >
+                  <tr>
+                    <td style="padding: 30px; background-color: #ffffff">
+                    <img
+                    src="${API_URL}/images/logo.png"
+                    width="250"
+                    alt="Logo"
+                    style="
+                      width: 250px;
+                      max-width: 80%;
+                      height: auto;
+                      border: none;
+                      text-decoration: none;
+                      color: #ffffff;
+                      display: block;
+                      margin: 0 auto;
+                      margin-bottom: 25px;
+                    "
+                />
+                      <h1
+                        style="
+                          margin-top: 0;
+                          margin-bottom: 16px;
+                          font-size: 26px;
+                          line-height: 32px;
+                          font-weight: bold;
+                          letter-spacing: -0.02em;
+                        "
+                      >
+                      Hello, this is email is to nofify you that the following files sent
+                      by ${shortVer} has expired:
                       </h1>
                       <p>Total size: ${dir.size}</p>
                   </tr>

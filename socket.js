@@ -36,6 +36,11 @@ export default {
       .on('connection', (socket) => {
         console.log('Connection with storage server established!');
         storageServerSocket = socket;
+
+        socket.on('disconnect', (reason) => {
+          console.error(`Connection with storage server lost due to ${reason}.`);
+          storageServerSocket = undefined;
+        });
       });
 
     return io;

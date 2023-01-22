@@ -9,12 +9,13 @@ import Dir from './models/dir.js';
 import Fileshake from './models/fileshake.js';
 import authRoutes from './routes/auth.js';
 import fileRoutes from './routes/file.js';
-import cors from './middlewares/cors.js';
+import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import storageServerStatus from './middlewares/storageServerStatus.js';
 import errHandler from './middlewares/errHandler.js';
-import { PORT, SENDGRID_API_KEY } from './config/config.js';
-import serverInit from './helpers/serverInit.js';
+import { PORT, CORS_OPTIONS, SENDGRID_API_KEY } from './config/config.js';
+import serverInit from './serverInit.js';
 
 try {
   const app = express();
@@ -36,8 +37,9 @@ try {
   app.use(express.raw({ type: 'application/octet-stream', limit: '10mb' }));
   app.use(compression());
   app.use(helmet({ crossOriginResourcePolicy: false }));
-  app.use(cors);
+  app.use(cors(CORS_OPTIONS));
   app.use(express.static('public'));
+  app.use(storageServerStatus);
   app.use('/auth', authRoutes);
   app.use('/files', fileRoutes);
   app.use(errHandler);

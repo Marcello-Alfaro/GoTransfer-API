@@ -18,50 +18,76 @@ import { pipeline } from 'stream/promises';
 export default {
   async postSendFile(req, res, next) {
     try {
-      const { user: { username } = { username: null }, isAuth } = req;
-      const { srcEmail, sendTo, title, message, dirId, files, expire = days(5) } = req.body;
+      const { sender, receivers, title, message, dirId, files, expire = days(5) } = req.body;
 
-      if (!isAuth) {
-        const userExists = await User.findOne({
-          where: { email: srcEmail },
+      const userExists = await User.findOne({
+        where: { email: sender },
+      });
+      const user = !userExists ? await User.create({ email: sender }) : userExists;
+
+      const dirReceivers = await Promise.all(
+        receivers.map(async (receiver) => {
+          const user = await User.findOne({ where: { email: receiver } });
+          if (!user) return await User.create({ email: receiver });
+          return user;
+        })
+      );
+
+      const size = formatFileSize(files.reduce((accum, entry) => (accum += entry.size), 0));
+      const dir = await user.createDir({ dirId, title, message, size, expire });
+
+      const dirFiles = await Promise.all(
+        files.map(
+          async (entry) =>
+            await dir.createFile({
+              fileId: entry.fileId,
+              name: entry.name,
+              size: formatFileSize(entry.size),
+              rawsize: entry.size,
+            })
+        )
+      );
+
+      await Promise.all(
+        dirReceivers.map(async (receiver) => {
+          await dir.addUser(receiver, { through: Fileshake });
+        })
+      );
+
+      if (receivers.length > 1) {
+        const msgToSender = email.srcFileSentMultiple(sender, receivers.length, {
+          ...dir.dataValues,
+          Files: dirFiles,
         });
-        const user = !userExists ? await User.create({ email: srcEmail }) : userExists;
+        await sgMail.send(msgToSender);
 
-        const dstUserExists = await User.findOne({ where: { email: sendTo } });
-        const dstUser = !dstUserExists ? await User.create({ email: sendTo }) : dstUserExists;
-
-        const size = formatFileSize(files.reduce((accum, entry) => (accum += entry.size), 0));
-        const dir = await user.createDir({ dirId, title, message, size, expire });
-
-        const dirFiles = await Promise.all(
-          files.map(
-            async (entry) =>
-              await dir.createFile({
-                fileId: entry.fileId,
-                name: entry.name,
-                size: formatFileSize(entry.size),
-                rawsize: entry.size,
-              })
-          )
+        await Promise.all(
+          receivers.map(async (receiver) => {
+            const msgToReceiver = email.dstFileSent(sender, receiver, {
+              ...dir.dataValues,
+              Files: dirFiles,
+            });
+            await sgMail.send(msgToReceiver);
+          })
         );
 
-        await dir.addUser(dstUser, { through: Fileshake });
-
-        const msgToSource = email.srcFileSent(srcEmail, sendTo, {
-          ...dir.dataValues,
-          Files: dirFiles,
-        });
-
-        const msgToDest = email.dstFileSent(srcEmail, sendTo, {
-          ...dir.dataValues,
-          Files: dirFiles,
-        });
-
-        await sgMail.send(msgToSource);
-        await sgMail.send(msgToDest);
-
-        return res.status(201).json({ message: `Files sent successfully to ${sendTo}` });
+        return res.status(201).json({ message: `Your files were sent successfully! 🍧` });
       }
+
+      const msgToSender = email.srcFileSent(sender, receivers[0], {
+        ...dir.dataValues,
+        Files: dirFiles,
+      });
+
+      const msgToReceiver = email.dstFileSent(sender, receivers[0], {
+        ...dir.dataValues,
+        Files: dirFiles,
+      });
+
+      await sgMail.send(msgToSender);
+      await sgMail.send(msgToReceiver);
+
+      res.status(201).json({ message: `Your files were sent successfully! 🍧` });
     } catch (err) {
       io.getIO().of('/storage-server').emit('unlink-file', { dirId: req.body.dirId });
       next(err);
@@ -125,8 +151,8 @@ export default {
     try {
       const requestId = uuidv4();
       const { dirId, fileId } = req.params;
-      const { srcEmail, dstEmail } = req.query;
-      if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
+      const { sender, receiver } = req.query;
+      if (!sender || !receiver) throwErr('Missing aditional information.', 401);
 
       const dir = await Dir.findOne({ where: { dirId }, include: File });
       const file = await File.findOne({ where: { fileId }, attributes: ['name'] });
@@ -142,11 +168,11 @@ export default {
         res,
         async fileDownloadCompleted() {
           if (dir.Files.length > 1) {
-            const msgToSource = email.srcPartialDownload(srcEmail, dstEmail, dir, file);
-            return await sgMail.send(msgToSource);
+            const msgToSender = email.srcPartialDownload(sender, receiver, dir, file);
+            return await sgMail.send(msgToSender);
           }
-          const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dir);
-          await sgMail.send(msgToSource);
+          const msgToSender = email.srcDownloadAll(sender, receiver, dir);
+          await sgMail.send(msgToSender);
         },
       });
 
@@ -160,8 +186,8 @@ export default {
     try {
       const requestId = uuidv4();
       const { dirId } = req.params;
-      const { srcEmail, dstEmail } = req.query;
-      if (!srcEmail || !dstEmail) throwErr('Missing aditional information.', 401);
+      const { sender, receiver } = req.query;
+      if (!sender || !receiver) throwErr('Missing aditional information.', 401);
 
       const dir = await Dir.findOne({
         where: { dirId },
@@ -180,8 +206,8 @@ export default {
         requestId,
         res,
         async fileDownloadCompleted() {
-          const msgToSource = email.srcDownloadAll(srcEmail, dstEmail, dir);
-          await sgMail.send(msgToSource);
+          const msgToSender = email.srcDownloadAll(sender, receiver, dir);
+          await sgMail.send(msgToSender);
         },
       });
 
@@ -205,18 +231,21 @@ export default {
   },
 
   getAllocateFile(req, res) {
-    const { srcEmail, sendTo, totalSize } = req.body;
+    const { sender, receivers, size } = req.body;
 
-    if (validator.isEmpty(srcEmail) || !validator.isEmail(srcEmail))
+    if (validator.isEmpty(sender) || !validator.isEmail(sender))
       throwErr('Your email is required and must be a valid email.', 422);
-    if (validator.isEmpty(sendTo) || !validator.isEmail(sendTo))
-      throwErr('Destination email is required and must be a valid email.', 422);
-    if (totalSize > MAX_FILE_SIZE) throwErr('File is too big! Max file size is 6GB', 422);
+    if (!receivers?.length > 0) throwErr('There are no receivers to send.', 422);
+    receivers.forEach((entry) => {
+      if (validator.isEmpty(entry) || !validator.isEmail(entry))
+        throwErr('Destination email is required and must be a valid email.', 422);
+    });
+    if (size > MAX_FILE_SIZE) throwErr('File is too big! Max file size is 6GB', 422);
 
     const requestId = uuidv4();
     const dirId = uuidv4();
 
-    Request.add({ requestId, dirId, srcEmail, sendTo, files: [] });
+    Request.add({ requestId, dirId, sender, receivers, files: [] });
 
     res.status(200).json({ requestId, dirId });
   },
@@ -236,10 +265,7 @@ export default {
       }
 
       if (complete) {
-        const {
-          requestId,
-          data: { title, message },
-        } = req.body;
+        const { requestId, title, message } = req.body;
         const request = Request.get(requestId);
         req.body = { title: !title ? request.files[0].name : title, message, ...request };
 
