@@ -1,16 +1,15 @@
 import express from 'express';
-import isAuth from '../middlewares/isAuth.js';
+import authorization from '../middlewares/authorization.js';
 import fileController from '../controllers/file.js';
-import socketId from '../middlewares/socketId.js';
 
 const router = express.Router();
 
-router.get('/transfer/storage-server', isAuth, fileController.getTransferFiles);
-router.get('/download/:dirId/:fileId', isAuth, fileController.getFile);
-router.get('/download/:dirId', isAuth, fileController.getAllFiles);
+router.get('/transfer/storage-server', authorization, fileController.getTransferFiles);
+router.get('/download/:dirId/:fileId', fileController.getFile);
+router.get('/download/:dirId', fileController.getAllFiles);
 
 router.post('/upload/allocate-file', fileController.getAllocateFile);
 router.put('/upload', fileController.fileHandler, fileController.postSendFile);
-router.put('/get-file', isAuth, fileController.getFileStorage);
+router.put('/get-file', authorization, fileController.getFileStorage);
 
 export default router;

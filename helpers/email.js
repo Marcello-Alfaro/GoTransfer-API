@@ -556,7 +556,7 @@ export default {
                         >
                           <ol>
                           ${dir.Files.reduce((accum, entry) => {
-                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?isAuth=false&sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
+                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
                             <p class="size">size: ${entry.size}</p>
                             </li>`;
                             return accum;
@@ -576,7 +576,7 @@ export default {
                                           display: inline-block;
                                           mso-padding-alt: 0;
                                           text-underline-color: #228be6;" 
-                            href="${API_URL}/files/download/${dir.dirId}?isAuth=false&sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                            href="${API_URL}/files/download/${dir.dirId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                             >Download All</span
                           ></a
                         >`
@@ -588,7 +588,7 @@ export default {
                                           display: inline-block;
                                           mso-padding-alt: 0;
                                           text-underline-color: #228be6;" 
-                              href="${API_URL}/files/download/${dir.dirId}/${dir.Files[0].fileId}?isAuth=false&sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                              href="${API_URL}/files/download/${dir.dirId}/${dir.Files[0].fileId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                               >Download File</span
                             ></a
                           >`
@@ -1097,7 +1097,7 @@ export default {
                         >
                           <ol>
                           ${dir.Files.reduce((accum, entry) => {
-                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?isAuth=false&sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
+                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
                             <p class="size">size: ${entry.size}</p>
                             </li>`;
                             return accum;
@@ -1107,7 +1107,7 @@ export default {
                           <p style="margin: 0">
                           ${
                             dir.Files.length > 1
-                              ? `<a class="btn-download-all" href="${API_URL}/files/download/${dir.dirId}?isAuth=false&sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                              ? `<a class="btn-download-all" href="${API_URL}/files/download/${dir.dirId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                             >Download All</span
                           ></a
                         >`

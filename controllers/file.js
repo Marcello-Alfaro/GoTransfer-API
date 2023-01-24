@@ -159,9 +159,7 @@ export default {
       if (!dir || !file)
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
 
-      io.getIO()
-        .of('/storage-server')
-        .emit('get-file', { requestId, dirId, type: 'single', fileId });
+      io.getIO().of('/storage-server').emit('get-file', { requestId, dirId, single: true, fileId });
 
       Request.add({
         requestId,
@@ -200,7 +198,7 @@ export default {
 
       io.getIO()
         .of('/storage-server')
-        .emit('get-file', { requestId, type: 'multiple', dirId, title, Files });
+        .emit('get-file', { requestId, single: false, dirId, title, Files });
 
       Request.add({
         requestId,
@@ -217,13 +215,13 @@ export default {
     }
   },
 
-  async getFileStorage(req, _, next) {
+  async getFileStorage(req, resp, next) {
     try {
       const { requestid: requestId } = req.headers;
       const { res, fileDownloadCompleted } = Request.get(requestId);
 
       await pipeline(req, res);
-
+      resp.sendStatus(200);
       await fileDownloadCompleted();
     } catch (err) {
       next(err);
@@ -238,7 +236,7 @@ export default {
     if (!receivers?.length > 0) throwErr('There are no receivers to send.', 422);
     receivers.forEach((entry) => {
       if (validator.isEmpty(entry) || !validator.isEmail(entry))
-        throwErr('Destination email is required and must be a valid email.', 422);
+        throwErr('Receiver email is required and must be a valid email.', 422);
     });
     if (size > MAX_FILE_SIZE) throwErr('File is too big! Max file size is 6GB', 422);
 
@@ -261,7 +259,7 @@ export default {
         if (!request) throwErr('Something went wrong, try again later', 422);
 
         request.files.push({ fileId, name, size });
-        return res.status(200).json('ok file');
+        return res.sendStatus(200);
       }
 
       if (complete) {
@@ -273,16 +271,15 @@ export default {
       }
 
       const { dirId, filename, part } = req.query;
+      const filePartId = `${filename}${part}`;
 
       io.getIO()
         .of('/storage-server')
-        .emit('alloc-storage-server', { dirId, filename, part, chunk: req.body });
+        .emit('alloc-storage-server', { filePartId, dirId, filename, chunk: req.body });
 
-      const ack = await new Promise((res, _) =>
-        io.getServerSocket().once(`${filename}${part}`, (ack) => res(ack))
-      );
+      await new Promise((res, _) => io.getServerSocket().once(filePartId, (ack) => res(ack)));
 
-      res.status(200).json(ack);
+      res.sendStatus(200);
     } catch (err) {
       throw err;
     }
