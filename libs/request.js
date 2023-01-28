@@ -5,10 +5,14 @@ export default class Request {
     this.queue.push(obj);
   }
 
-  static get(requestId) {
-    return this.queue.splice(
-      this.queue.findIndex((entry) => entry.request === requestId),
-      1
-    )[0];
+  static get(id) {
+    try {
+      const index = this.queue.findIndex((entry) => entry.requestId === id);
+      if (index < 0) throw new Error(`Could not find request with id: ${id}`);
+
+      return this.queue.splice(index, 1)[0];
+    } catch (err) {
+      throw err;
+    }
   }
 }

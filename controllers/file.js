@@ -6,7 +6,6 @@ import Dir from '../models/dir.js';
 import Fileshake from '../models/fileshake.js';
 import sgMail from '@sendgrid/mail';
 import formatFileSize from '../helpers/formatFileSize.js';
-import sequelize from '../database/connection.js';
 import { v4 as uuidv4 } from 'uuid';
 import validator from 'validator';
 import User from '../models/user.js';
@@ -14,6 +13,7 @@ import days from '../helpers/days.js';
 import io from '../socket.js';
 import email from '../helpers/email.js';
 import { pipeline } from 'stream/promises';
+import busboy from 'busboy';
 
 export default {
   async postSendFile(req, res, next) {
@@ -94,59 +94,6 @@ export default {
     }
   },
 
-  async getMyFiles(req, res, next) {
-    try {
-      const {
-        user: { username },
-      } = req;
-      const currUser = await User.findOne({ where: { username } });
-      if (!currUser) throwErr('Current user could not be found!', 404);
-
-      const userFiles = await currUser.getDirs({ include: File });
-      if (!userFiles.length > 0) throwErr('No files found for this user.', 404);
-
-      res.status(200).json({ userFiles });
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  async getReceivedFiles(req, res, next) {
-    try {
-      const {
-        user: { username },
-      } = req;
-
-      const [query] = await sequelize.query(
-        `SELECT us.username AS sender, dir.message, dir.dirId, dir.title, dir.expire, dir.createdAt
-        FROM Users us
-        INNER JOIN Dirs dir
-        ON us.id = dir.userId
-        INNER JOIN Users_Dirs ud
-        ON ud.dirId = dir.id
-        INNER JOIN Users usr
-        ON usr.id = ud.userId
-        WHERE usr.username = ?;`,
-        { replacements: [username] }
-      );
-
-      if (!query.length > 0) throwErr('No files received for this user.', 404);
-
-      const sentFiles = await Promise.all(
-        query.map(async (entry) => {
-          return {
-            ...entry,
-            Files: await (await Dir.findOne({ where: { dirId: entry.dirId } })).getFiles(),
-          };
-        })
-      );
-
-      res.status(200).json({ sentFiles });
-    } catch (err) {
-      next(err);
-    }
-  },
-
   async getFile(req, res, next) {
     try {
       const requestId = uuidv4();
@@ -217,10 +164,11 @@ export default {
 
   async getFileStorage(req, resp, next) {
     try {
-      const { requestid: requestId } = req.headers;
-      const { res, fileDownloadCompleted } = Request.get(requestId);
+      const { requestid } = req.headers;
+      const { res, fileDownloadCompleted } = Request.get(requestid);
 
       await pipeline(req, res);
+
       resp.sendStatus(200);
       await fileDownloadCompleted();
     } catch (err) {
@@ -271,28 +219,45 @@ export default {
       }
 
       const { dirId, filename, part } = req.query;
+      const { headers, socketId } = req;
       const filePartId = `${filename}${part}`;
+      const bb = busboy({ headers });
 
-      io.getIO()
-        .of('/storage-server')
-        .emit('alloc-storage-server', { filePartId, dirId, filename, chunk: req.body });
+      bb.on('file', (_, file) => {
+        io.getIO()
+          .of('/storage-server')
+          .emit('alloc-storage-server', { filePartId, dirId, filename });
+
+        Request.add({
+          requestId: filePartId,
+          async filePartStream(res) {
+            file.on('data', (chunk) =>
+              io.getIO().to(socketId).emit('bytes-received', chunk.length)
+            );
+
+            await pipeline(file, res);
+          },
+        });
+      });
+
+      await pipeline(req, bb);
 
       await new Promise((res, _) => io.getServerSocket().once(filePartId, (ack) => res(ack)));
 
       res.sendStatus(200);
     } catch (err) {
-      throw err;
+      next(err);
     }
   },
 
-  getTransferFiles(req, res) {
+  async getTransferFiles(req, res) {
     try {
-      const { requestid: requestId } = req.headers;
-      const { payload } = Request.get(requestId);
+      const { filepartid } = req.headers;
+      const { filePartStream } = Request.get(filepartid);
 
-      res.status(200).send(payload);
+      await filePartStream(res);
     } catch (err) {
-      throw err;
+      next(err);
     }
   },
 };
