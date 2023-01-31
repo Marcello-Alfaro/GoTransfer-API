@@ -81,11 +81,10 @@ ol li:last-of-type {
 
 export default {
   srcFileSent(sender, receiver, dir) {
-    const shortVer = receiver.split('@')[0];
     return {
       to: sender,
       from: FROM_EMAIL,
-      subject: `"${dir.title}" was sent to ${shortVer}`,
+      subject: `"${dir.title}" was sent to ${receiver}`,
       html: `<!DOCTYPE html>
       <html
         lang="en"
@@ -156,7 +155,7 @@ export default {
                             letter-spacing: -0.02em;
                           "
                         >
-                        Hi there, "${dir.title}" was sent successfully to ${shortVer} with ${
+                        "${dir.title}" was sent successfully to ${receiver} with ${
         dir.Files.length > 1 ? `${dir.Files.length} files` : `1 file`
       }:
                         </h1>
@@ -326,9 +325,7 @@ export default {
                             letter-spacing: -0.02em;
                           "
                         >
-                        Hi there, "${
-                          dir.title
-                        }" was sent successfully to ${numReceivers} receivers with ${
+                        "${dir.title}" was sent successfully to ${numReceivers} receivers with ${
         dir.Files.length > 1 ? `${dir.Files.length} files` : `1 file`
       }:
                         </h1>
@@ -424,13 +421,10 @@ export default {
     };
   },
   dstFileSent(sender, receiver, dir) {
-    const shortVer = sender.split('@')[0];
     return {
       to: receiver,
       from: FROM_EMAIL,
-      subject: `${shortVer} sent you "${dir.title}" with ${
-        dir.Files.length > 1 ? `${dir.Files.length} files` : `1 file`
-      }`,
+      subject: `${sender} sent you "${dir.title}"`,
       html: `<!DOCTYPE html>
       <html
         lang="en"
@@ -501,7 +495,7 @@ export default {
                             letter-spacing: -0.02em;
                           "
                         >
-                        Hi there, ${shortVer} sent you "${dir.title}" with ${
+                        ${sender} sent you "${dir.title}" with ${
         dir.Files.length > 1 ? `${dir.Files.length} files` : '1 file'
       }.
                         </h1>
@@ -631,11 +625,10 @@ export default {
     };
   },
   srcPartialDownload(sender, receiver, dir, file) {
-    const shortVer = receiver.split('@')[0];
     return {
       to: sender,
       from: FROM_EMAIL,
-      subject: `${shortVer} partially downloaded "${dir.title}"`,
+      subject: `${receiver} partially downloaded "${dir.title}"`,
       html: `<!DOCTYPE html>
       <html
         lang="en"
@@ -706,7 +699,7 @@ export default {
                             letter-spacing: -0.02em;
                           "
                         >
-                        Hello, this email is to notify you that ${shortVer} downloaded one of the files in "${
+                        This email is to notify you that ${receiver} downloaded one of your files in "${
         dir.title
       }".
                         </h1>
@@ -798,11 +791,10 @@ export default {
     };
   },
   srcDownloadAll(sender, receiver, dir) {
-    const shortVer = receiver.split('@')[0];
     return {
       to: sender,
       from: FROM_EMAIL,
-      subject: `${shortVer} downloaded "${dir.title}" and all its files`,
+      subject: `${receiver} downloaded "${dir.title}" and all its files`,
       html: `<!DOCTYPE html>
             <html
               lang="en"
@@ -873,9 +865,9 @@ export default {
                                   letter-spacing: -0.02em;
                                 "
                               >
-                              Hey there, this email is to notify you that ${shortVer} successfully downloaded "${
+                              This email is to notify you that ${receiver} successfully downloaded "${
         dir.title
-      }" and its ${dir.Files.length > 1 ? `${dir.Files.length} files` : '1 file'}.
+      }" and all its files.
                               </h1>
                             </td>
                           </tr>            
@@ -968,11 +960,10 @@ export default {
     };
   },
   dstFilesAbout2Expire(sender, receiver, dir) {
-    const shortVer = sender.split('@')[0];
     return {
       to: receiver,
       from: FROM_EMAIL,
-      subject: `"${dir.title}" sent by ${shortVer} is about to expire!`,
+      subject: `"${dir.title}" sent by ${sender} is about to expire!`,
       html: `<!DOCTYPE html>
     <html
       lang="en"
@@ -1043,7 +1034,7 @@ export default {
                           letter-spacing: -0.02em;
                         "
                       >
-                      Hello, this is email is to nofify you that "${
+                      This is email is to nofify you that "${
                         dir.title
                       }" with the following file(s) will expire in 1 day:
                       </h1>
@@ -1224,7 +1215,7 @@ export default {
                           letter-spacing: -0.02em;
                         "
                       >
-                      Hello, this is email is to nofify you that "${
+                      This is email is to nofify you that "${
                         dir.title
                       }" with the following files has expired:
                       </h1>
@@ -1332,7 +1323,6 @@ export default {
   },
 
   dstFileExpired(sender, receiver, dir) {
-    const shortVer = sender.split('@')[0];
     return {
       to: receiver,
       from: FROM_EMAIL,
@@ -1407,8 +1397,8 @@ export default {
                           letter-spacing: -0.02em;
                         "
                       >
-                      Hello, this is email is to nofify you that the following files sent
-                      by ${shortVer} has expired:
+                      This is email is to nofify you that the following files sent
+                      by ${sender} has expired:
                       </h1>
                       <p>Total size: ${dir.size}</p>
                   </tr>

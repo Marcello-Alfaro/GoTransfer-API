@@ -189,11 +189,10 @@ export default {
     if (size > MAX_FILE_SIZE) throwErr('File is too big! Max file size is 6GB', 422);
 
     const requestId = uuidv4();
-    const dirId = uuidv4();
 
-    Request.add({ requestId, dirId, sender, receivers, files: [] });
+    Request.add({ requestId, dirId: uuidv4(), sender, receivers, files: [] });
 
-    res.status(200).json({ requestId, dirId });
+    res.status(200).json(requestId);
   },
 
   async fileHandler(req, res, next) {
@@ -202,11 +201,11 @@ export default {
 
       if (fileComplete) {
         const { requestId, fileId, name, size } = req.body;
-        const request = Request.queue.find((entry) => entry.requestId === requestId);
+        const { files } =
+          Request.queue.find((entry) => entry.requestId === requestId) ??
+          throwErr('Something went wrong, try again later', 422);
 
-        if (!request) throwErr('Something went wrong, try again later', 422);
-
-        request.files.push({ fileId, name, size });
+        files.push({ fileId, name, size });
         return res.sendStatus(200);
       }
 
@@ -218,7 +217,10 @@ export default {
         return next();
       }
 
-      const { dirId, filename, part } = req.query;
+      const { requestId, filename, part } = req.query;
+      const { dirId } =
+        Request.queue.find((entry) => entry.requestId === requestId) ??
+        throwErr('Something went wrong, try again later', 500);
       const { headers, socketId } = req;
       const filePartId = `${filename}${part}`;
       const bb = busboy({ headers });
