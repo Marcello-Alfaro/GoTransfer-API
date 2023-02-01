@@ -252,7 +252,7 @@ export default {
     }
   },
 
-  async getTransferFiles(req, res) {
+  async getTransferFiles(req, res, next) {
     try {
       const { filepartid } = req.headers;
       const { filePartStream } = Request.get(filepartid);
