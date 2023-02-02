@@ -1097,12 +1097,33 @@ export default {
                           <p style="margin-top: 0; margin-bottom: 18px"></p>
                           <p style="margin: 0">
                           ${
-                            dir.Files.length > 1
-                              ? `<a class="btn-download-all" href="${API_URL}/files/download/${dir.dirId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                            dir.Files.length > 1 && dir.Files.find((file) => file.rawsize > 2 ** 32)
+                              ? ''
+                              : dir.Files.length > 1
+                              ? `<a style="background: #228be6;
+                                          text-decoration: none;
+                                          padding: 10px 25px;
+                                          color: #fff;
+                                          border-radius: 4px;
+                                          display: inline-block;
+                                          mso-padding-alt: 0;
+                                          text-underline-color: #228be6;" 
+                            href="${API_URL}/files/download/${dir.dirId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                             >Download All</span
                           ></a
                         >`
-                              : ''
+                              : `<a style="background: #228be6;
+                                          text-decoration: none;
+                                          padding: 10px 25px;
+                                          color: #fff;
+                                          border-radius: 4px;
+                                          display: inline-block;
+                                          mso-padding-alt: 0;
+                                          text-underline-color: #228be6;" 
+                              href="${API_URL}/files/download/${dir.dirId}/${dir.Files[0].fileId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                              >Download File</span
+                            ></a
+                          >`
                           }
                           </p>
                         </div>
