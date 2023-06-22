@@ -5,7 +5,7 @@ import Fileshake from './models/fileshake.js';
 import Dir from './models/dir.js';
 import File from './models/file.js';
 import { Op } from 'sequelize';
-import { PORT } from './config/config.js';
+import { PORT, FILE_WATCHER_INTERVAL } from './config/config.js';
 import days from './helpers/days.js';
 import email from './helpers/email.js';
 
@@ -95,7 +95,7 @@ export default () => {
       } catch (err) {
         throw err;
       }
-    }, 1000);
+    }, FILE_WATCHER_INTERVAL);
 
     process.on('uncaughtException', (err) => console.error(err));
   } catch (err) {

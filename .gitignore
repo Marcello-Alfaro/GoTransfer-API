@@ -3,3 +3,4 @@ storage
 nodemon.json
 ecosystem.config.cjs
 nginx.config
+.env
