@@ -5,8 +5,9 @@ import sgMail from '@sendgrid/mail';
 import User from './models/user.js';
 import Attribute from './models/attribute.js';
 import File from './models/file.js';
-import Dir from './models/dir.js';
-import Fileshake from './models/fileshake.js';
+import Folder from './models/folder.js';
+import Transfer from './models/transfer.js';
+import UsersTransfers from './models/userTransfer.js';
 import authRoutes from './routes/auth.js';
 import fileRoutes from './routes/file.js';
 import cors from 'cors';
@@ -24,14 +25,28 @@ try {
   User.hasOne(Attribute, { foreignKey: 'id', onDelete: 'CASCADE' });
   Attribute.belongsTo(User, { foreignKey: 'id', onDelete: 'CASCADE' });
 
-  User.hasMany(Dir, { foreignKey: 'userId', onDelete: 'CASCADE' });
-  Dir.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
+  User.hasMany(Transfer, { foreignKey: 'userId', onDelete: 'CASCADE' });
+  Transfer.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
 
-  Dir.hasMany(File, { foreignKey: 'dirId', onDelete: 'CASCADE' });
-  File.belongsTo(Dir, { foreignKey: 'dirId', onDelete: 'CASCADE' });
+  Transfer.hasMany(File, { foreignKey: 'transferId', onDelete: 'CASCADE' });
+  File.belongsTo(Transfer, { foreignKey: 'transferId', onDelete: 'CASCADE' });
 
-  User.belongsToMany(Dir, { through: Fileshake, foreignKey: 'userId', otherKey: 'dirId' });
-  Dir.belongsToMany(User, { through: Fileshake, foreignKey: 'dirId', otherKey: 'userId' });
+  Transfer.hasMany(Folder, { foreignKey: 'transferId', onDelete: 'CASCADE' });
+  Folder.belongsTo(Transfer, { foreignKey: 'transferId', onDelete: 'CASCADE' });
+
+  Folder.hasMany(File, { foreignKey: 'folderId', onDelete: 'CASCADE' });
+  File.belongsTo(Folder, { foreignKey: 'folderId', onDelete: 'CASCADE' });
+
+  User.belongsToMany(Transfer, {
+    through: UsersTransfers,
+    foreignKey: 'userId',
+    otherKey: 'transferId',
+  });
+  Transfer.belongsToMany(User, {
+    through: UsersTransfers,
+    foreignKey: 'transferId',
+    otherKey: 'userId',
+  });
 
   app.use(express.json());
   app.use(compression());

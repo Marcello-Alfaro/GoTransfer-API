@@ -1,15 +1,15 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../database/connection.js';
 
-const Dir = sequelize.define(
-  'Dirs',
+const Transfer = sequelize.define(
+  'Transfers',
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    dirId: {
+    transferId: {
       type: DataTypes.UUID,
       allowNull: false,
     },
@@ -23,7 +23,7 @@ const Dir = sequelize.define(
       allowNull: false,
     },
     size: {
-      type: DataTypes.STRING,
+      type: DataTypes.DOUBLE,
       allowNull: false,
     },
     expire: {
@@ -36,15 +36,7 @@ const Dir = sequelize.define(
       allowNull: false,
     },
   },
-  {
-    paranoid: true,
-    hooks: {
-      async afterDestroy(instance, options) {
-        const files = await instance.getFiles();
-        files.forEach(async (entry) => entry.destroy());
-      },
-    },
-  }
+  { paranoid: true }
 );
 
-export default Dir;
+export default Transfer;

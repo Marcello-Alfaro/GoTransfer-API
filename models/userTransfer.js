@@ -1,8 +1,8 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../database/connection.js';
 
-const Fileshake = sequelize.define(
-  'Fileshakes',
+const UsersTransfers = sequelize.define(
+  'UsersTransfers',
   {
     downloaded: {
       type: DataTypes.BOOLEAN,
@@ -13,4 +13,4 @@ const Fileshake = sequelize.define(
   { paranoid: true }
 );
 
-export default Fileshake;
+export default UsersTransfers;

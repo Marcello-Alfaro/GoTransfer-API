@@ -1,4 +1,5 @@
 import { FROM_EMAIL, API_URL } from '../config/config.js';
+import formatFileSize from './formatFileSize.js';
 
 const styles = `<style>
 table,
@@ -80,11 +81,11 @@ ol li:last-of-type {
 </style>`;
 
 export default {
-  srcFileSent(sender, receiver, dir) {
+  srcFileSent(sender, receiver, transfer) {
     return {
       to: sender,
       from: FROM_EMAIL,
-      subject: `"${dir.title}" was sent to ${receiver}`,
+      subject: `"${transfer.title}" was sent to ${receiver}`,
       html: `<!DOCTYPE html>
       <html
         lang="en"
@@ -138,6 +139,7 @@ export default {
                         max-width: 80%;
                         height: auto;
                         border: none;
+                        border-radius: 9px;
                         text-decoration: none;
                         color: #ffffff;
                         display: block;
@@ -155,11 +157,11 @@ export default {
                             letter-spacing: -0.02em;
                           "
                         >
-                        "${dir.title}" was sent successfully to ${receiver} with ${
-        dir.Files.length > 1 ? `${dir.Files.length} files` : `1 file`
+                        "${transfer.title}" was sent successfully to ${receiver} with ${
+        transfer.Files.length > 1 ? `${transfer.Files.length} files` : `1 file`
       }:
                         </h1>
-                        <p>Total size: ${dir.size}</p>
+                        <p>Total size: ${formatFileSize(transfer.size)}</p>
                       </td>
                     </tr>         
                     <tr>
@@ -207,9 +209,9 @@ export default {
                           "
                         >
                           <ol>
-                          ${dir.Files.reduce((accum, entry) => {
+                          ${transfer.Files.reduce((accum, entry) => {
                             accum += `<li><strong>${entry.name}</strong>
-                            <p class="size">size: ${entry.size}</p>
+                            <p class="size">size: ${formatFileSize(entry.size)}</p>
                             </li>`;
                             return accum;
                           }, '')}
@@ -236,7 +238,7 @@ export default {
                         "
                       >
                         <p style="margin: 0; font-size: 14px; line-height: 20px">
-                          Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                          Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                         </p>
                       </td>
                     </tr>
@@ -308,6 +310,7 @@ export default {
                         max-width: 80%;
                         height: auto;
                         border: none;
+                        border-radius: 9px;
                         text-decoration: none;
                         color: #ffffff;
                         display: block;
@@ -406,7 +409,7 @@ export default {
                         "
                       >
                         <p style="margin: 0; font-size: 14px; line-height: 20px">
-                          Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                          Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                         </p>
                       </td>
                     </tr>
@@ -420,11 +423,11 @@ export default {
       `,
     };
   },
-  dstFileSent(sender, receiver, dir) {
+  dstFileSent(sender, receiver, transfer) {
     return {
       to: receiver,
       from: FROM_EMAIL,
-      subject: `${sender} sent you "${dir.title}"`,
+      subject: `${sender} sent you "${transfer.title}"`,
       html: `<!DOCTYPE html>
       <html
         lang="en"
@@ -478,6 +481,7 @@ export default {
                         max-width: 80%;
                         height: auto;
                         border: none;
+                        border-radius: 9px;
                         text-decoration: none;
                         color: #ffffff;
                         display: block;
@@ -495,12 +499,12 @@ export default {
                             letter-spacing: -0.02em;
                           "
                         >
-                        ${sender} sent you "${dir.title}" with ${
-        dir.Files.length > 1 ? `${dir.Files.length} files` : '1 file'
+                        ${sender} sent you "${transfer.title}" with ${
+        transfer.Files.length > 1 ? `${transfer.Files.length} files` : '1 file'
       }.
                         </h1>
-                        <p>Total size: ${dir.size}</p>
-                        ${!dir.message ? '' : `<p>${dir.message}</p>`}
+                        <p>Total size: ${formatFileSize(transfer.size)}</p>
+                        ${!transfer.message ? '' : `<p>${transfer.message}</p>`}
                       </td>
                     </tr>
       
@@ -549,9 +553,13 @@ export default {
                           "
                         >
                           <ol>
-                          ${dir.Files.reduce((accum, entry) => {
-                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
-                            <p class="size">size: ${entry.size}</p>
+                          ${transfer.Files.reduce((accum, entry) => {
+                            accum += `<li><a href="${API_URL}/files/download/${
+                              entry?.fileId ? 'file' : 'folder'
+                            }/${transfer.transferId}/${
+                              entry?.fileId ?? entry.folderId
+                            }?sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
+                            <p class="size">size: ${formatFileSize(entry.size)}</p>
                             </li>`;
                             return accum;
                           }, '')}
@@ -559,9 +567,7 @@ export default {
                           <p style="margin-top: 0; margin-bottom: 18px"></p>
                           <p style="margin: 0">
                           ${
-                            dir.Files.length > 1 && dir.Files.find((file) => file.rawsize > 2 ** 32)
-                              ? ''
-                              : dir.Files.length > 1
+                            transfer.Files.length > 1
                               ? `<a style="background: #228be6;
                                           text-decoration: none;
                                           padding: 10px 25px;
@@ -570,7 +576,7 @@ export default {
                                           display: inline-block;
                                           mso-padding-alt: 0;
                                           text-underline-color: #228be6;" 
-                            href="${API_URL}/files/download/${dir.dirId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                            href="${API_URL}/files/download/${transfer.transferId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                             >Download All</span
                           ></a
                         >`
@@ -582,7 +588,11 @@ export default {
                                           display: inline-block;
                                           mso-padding-alt: 0;
                                           text-underline-color: #228be6;" 
-                              href="${API_URL}/files/download/${dir.dirId}/${dir.Files[0].fileId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                              href="${API_URL}/files/download/${
+                                  transfer.Files[0]?.fileId ? 'file' : 'folder'
+                                }/${transfer.transferId}/${
+                                  transfer.Files[0]?.fileId ?? transfer.Files[0].folderId
+                                }?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                               >Download File</span
                             ></a
                           >`
@@ -610,7 +620,7 @@ export default {
                         "
                       >
                         <p style="margin: 0; font-size: 14px; line-height: 20px">
-                          Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                          Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                         </p>
                       </td>
                     </tr>
@@ -624,11 +634,11 @@ export default {
       `,
     };
   },
-  srcPartialDownload(sender, receiver, dir, file) {
+  srcPartialDownload(sender, receiver, transfer, file) {
     return {
       to: sender,
       from: FROM_EMAIL,
-      subject: `${receiver} partially downloaded "${dir.title}"`,
+      subject: `${receiver} partially downloaded "${transfer.title}"`,
       html: `<!DOCTYPE html>
       <html
         lang="en"
@@ -682,6 +692,7 @@ export default {
                         max-width: 80%;
                         height: auto;
                         border: none;
+                        border-radius: 9px;
                         text-decoration: none;
                         color: #ffffff;
                         display: block;
@@ -700,7 +711,7 @@ export default {
                           "
                         >
                         This email is to notify you that ${receiver} downloaded one of your files in "${
-        dir.title
+        transfer.title
       }".
                         </h1>
                       </td>
@@ -751,7 +762,7 @@ export default {
                         >
                           <ul>
                           <li><strong>${file.name}</strong>
-                            <p class="size">size: ${file.size}</p>
+                            <p class="size">size: ${formatFileSize(file.size)}</p>
                             </li>
                           </ul>
                           <p style="margin-top: 0; margin-bottom: 18px"></p>
@@ -776,7 +787,7 @@ export default {
                         "
                       >
                         <p style="margin: 0; font-size: 14px; line-height: 20px">
-                          Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                          Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                         </p>
                       </td>
                     </tr>
@@ -848,6 +859,7 @@ export default {
                               max-width: 80%;
                               height: auto;
                               border: none;
+                              border-radius: 9px;
                               text-decoration: none;
                               color: #ffffff;
                               display: block;
@@ -945,7 +957,7 @@ export default {
                               "
                             >
                               <p style="margin: 0; font-size: 14px; line-height: 20px">
-                                Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                                Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                               </p>
                             </td>
                           </tr>
@@ -959,11 +971,11 @@ export default {
             `,
     };
   },
-  dstFilesAbout2Expire(sender, receiver, dir) {
+  dstFilesAbout2Expire(sender, receiver, transfer) {
     return {
       to: receiver,
       from: FROM_EMAIL,
-      subject: `"${dir.title}" sent by ${sender} is about to expire!`,
+      subject: `"${transfer.title}" sent by ${sender} is about to expire!`,
       html: `<!DOCTYPE html>
     <html
       lang="en"
@@ -1017,6 +1029,7 @@ export default {
                       max-width: 80%;
                       height: auto;
                       border: none;
+                      border-radius: 9px;
                       text-decoration: none;
                       color: #ffffff;
                       display: block;
@@ -1035,11 +1048,11 @@ export default {
                         "
                       >
                       This is email is to nofify you that "${
-                        dir.title
+                        transfer.title
                       }" with the following file(s) will expire in 1 day:
                       </h1>
                       </p
-                      ${!dir.message ? '' : `<p> Message: ${dir.message}</p>`}
+                      ${!transfer.message ? '' : `<p> Message: ${transfer.message}</p>`}
                     </td>
                   </tr>
                   <tr>
@@ -1087,9 +1100,13 @@ export default {
                           "
                         >
                           <ol>
-                          ${dir.Files.reduce((accum, entry) => {
-                            accum += `<li><a href="${API_URL}/files/download/${dir.dirId}/${entry.fileId}?sender=${sender}&receiver=${receiver}" download>${entry.name}</a>
-                            <p class="size">size: ${entry.size}</p>
+                          ${transfer.Files.reduce((accum, entry) => {
+                            accum += `<li><a href="${API_URL}/files/download/${
+                              transfer.transferId
+                            }/${entry.fileId}?sender=${sender}&receiver=${receiver}" download>${
+                              entry.name
+                            }</a>
+                            <p class="size">size: ${formatFileSize(entry.size)}</p>
                             </li>`;
                             return accum;
                           }, '')}
@@ -1097,9 +1114,7 @@ export default {
                           <p style="margin-top: 0; margin-bottom: 18px"></p>
                           <p style="margin: 0">
                           ${
-                            dir.Files.length > 1 && dir.Files.find((file) => file.rawsize > 2 ** 32)
-                              ? ''
-                              : dir.Files.length > 1
+                            transfer.Files.length > 1
                               ? `<a style="background: #228be6;
                                           text-decoration: none;
                                           padding: 10px 25px;
@@ -1108,7 +1123,7 @@ export default {
                                           display: inline-block;
                                           mso-padding-alt: 0;
                                           text-underline-color: #228be6;" 
-                            href="${API_URL}/files/download/${dir.dirId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                            href="${API_URL}/files/download/${transfer.transferId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                             >Download All</span
                           ></a
                         >`
@@ -1120,7 +1135,7 @@ export default {
                                           display: inline-block;
                                           mso-padding-alt: 0;
                                           text-underline-color: #228be6;" 
-                              href="${API_URL}/files/download/${dir.dirId}/${dir.Files[0].fileId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
+                              href="${API_URL}/files/download/${transfer.transferId}/${transfer.Files[0].fileId}?sender=${sender}&receiver=${receiver}" download><span style="mso-text-raise: 10pt; font-weight: bold"
                               >Download File</span
                             ></a
                           >`
@@ -1147,7 +1162,7 @@ export default {
                       "
                     >
                       <p style="margin: 0; font-size: 14px; line-height: 20px">
-                        Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                        Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                       </p>
                     </td>
                   </tr>
@@ -1161,11 +1176,11 @@ export default {
     `,
     };
   },
-  srcFileExpired(sender, receiver, dir) {
+  srcFileExpired(sender, receiver, transfer) {
     return {
       to: sender,
       from: FROM_EMAIL,
-      subject: `Your file "${dir.title}" expired!`,
+      subject: `Your file "${transfer.title}" expired!`,
       html: `<!DOCTYPE html>
     <html
       lang="en"
@@ -1219,6 +1234,7 @@ export default {
                       max-width: 80%;
                       height: auto;
                       border: none;
+                      border-radius: 9px;
                       text-decoration: none;
                       color: #ffffff;
                       display: block;
@@ -1237,10 +1253,10 @@ export default {
                         "
                       >
                       This is email is to nofify you that "${
-                        dir.title
+                        transfer.title
                       }" with the following files has expired:
                       </h1>
-                      <p>Total size: ${dir.size}</p>
+                      <p>Total size: ${formatFileSize(transfer.size)}</p>
                   </tr>
                   <tr>
                     <td
@@ -1287,7 +1303,7 @@ export default {
                         "
                       >
                         <ol>
-                        ${dir.Files.reduce(
+                        ${transfer.Files.reduce(
                           (accum, entry) =>
                             (accum += `${
                               !entry.deletedAt
@@ -1298,7 +1314,7 @@ export default {
                                     entry.deletedAt.toISOString().split('T')[0]
                                   }</span>`
                             }
-                          <p class="size">size: ${entry.size}</p>
+                          <p class="size">size: ${formatFileSize(entry.size)}</p>
                           </li>`),
 
                           ''
@@ -1328,7 +1344,7 @@ export default {
                       "
                     >
                       <p style="margin: 0; font-size: 14px; line-height: 20px">
-                        Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                        Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                       </p>
                     </td>
                   </tr>
@@ -1343,11 +1359,11 @@ export default {
     };
   },
 
-  dstFileExpired(sender, receiver, dir) {
+  dstFileExpired(sender, receiver, transfer) {
     return {
       to: receiver,
       from: FROM_EMAIL,
-      subject: `File "${dir.title}" expired!`,
+      subject: `File "${transfer.title}" expired!`,
       html: `<!DOCTYPE html>
     <html
       lang="en"
@@ -1401,6 +1417,7 @@ export default {
                       max-width: 80%;
                       height: auto;
                       border: none;
+                      border-radius: 9px;
                       text-decoration: none;
                       color: #ffffff;
                       display: block;
@@ -1421,7 +1438,7 @@ export default {
                       This is email is to nofify you that the following files sent
                       by ${sender} has expired:
                       </h1>
-                      <p>Total size: ${dir.size}</p>
+                      <p>Total size: ${formatFileSize(transfer.size)}</p>
                   </tr>
                   <tr>
                     <td
@@ -1468,7 +1485,7 @@ export default {
                         "
                       >
                         <ol>
-                        ${dir.Files.reduce(
+                        ${transfer.Files.reduce(
                           (accum, entry) =>
                             (accum += `${
                               !entry.deletedAt
@@ -1479,7 +1496,7 @@ export default {
                                     entry.deletedAt.toISOString().split('T')[0]
                                   }</span>`
                             }
-                          <p class="size">size: ${entry.size}</p>
+                          <p class="size">size: ${formatFileSize(entry.size)}</p>
                           </li>`),
 
                           ''
@@ -1509,7 +1526,7 @@ export default {
                       "
                     >
                       <p style="margin: 0; font-size: 14px; line-height: 20px">
-                        Copyright &reg; ${new Date().getFullYear()} FileShake, Marcello Alfaro. All Rights Reserved.<br />
+                        Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                       </p>
                     </td>
                   </tr>

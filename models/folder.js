@@ -1,15 +1,15 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../database/connection.js';
 
-const File = sequelize.define(
-  'Files',
+const Folder = sequelize.define(
+  'Folders',
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    fileId: {
+    folderId: {
       type: DataTypes.UUID,
       allowNull: false,
     },
@@ -18,20 +18,23 @@ const File = sequelize.define(
       allowNull: false,
     },
     size: {
-      type: DataTypes.DOUBLE,
-      allowNull: false,
-    },
-    type: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    path: {
-      type: DataTypes.STRING,
+    files: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 'root',
     },
   },
-  { paranoid: true }
+  {
+    paranoid: true,
+    hooks: {
+      async afterDestroy(instance) {
+        const files = await instance.getFiles();
+        files.forEach(async (entry) => entry.destroy());
+      },
+    },
+  }
 );
 
-export default File;
+export default Folder;

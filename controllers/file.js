@@ -1,11 +1,11 @@
 import Request from '../libs/request.js';
 import { MAX_FILE_SIZE } from '../config/config.js';
 import throwErr from '../helpers/throwErr.js';
+import Transfer from '../models/transfer.js';
 import File from '../models/file.js';
-import Dir from '../models/dir.js';
-import Fileshake from '../models/fileshake.js';
+import Folder from '../models/folder.js';
+import UserTransfer from '../models/userTransfer.js';
 import sgMail from '@sendgrid/mail';
-import formatFileSize from '../helpers/formatFileSize.js';
 import { v4 as uuidv4 } from 'uuid';
 import validator from 'validator';
 import User from '../models/user.js';
@@ -18,14 +18,14 @@ import busboy from 'busboy';
 export default {
   async postSendFile(req, res, next) {
     try {
-      const { sender, receivers, title, message, dirId, files, expire = days(5) } = req.body;
+      const { sender, receivers, title, message, transferId, files, expire = days(5) } = req.body;
 
       const userExists = await User.findOne({
         where: { email: sender },
       });
       const user = !userExists ? await User.create({ email: sender }) : userExists;
 
-      const dirReceivers = await Promise.all(
+      const transferReceivers = await Promise.all(
         receivers.map(async (receiver) => {
           const user = await User.findOne({ where: { email: receiver } });
           if (!user) return await User.create({ email: receiver });
@@ -33,39 +33,61 @@ export default {
         })
       );
 
-      const size = formatFileSize(files.reduce((accum, entry) => (accum += entry.size), 0));
-      const dir = await user.createDir({ dirId, title, message, size, expire });
+      const size = files.reduce((accum, entry) => (accum += entry?.size ?? entry._size), 0);
+      const transfer = await user.createTransfer({ transferId, title, message, size, expire });
 
-      const dirFiles = await Promise.all(
-        files.map(
-          async (entry) =>
-            await dir.createFile({
+      const transferFiles = await Promise.all(
+        files.map(async (entry) => {
+          if (entry?.fileId)
+            return await transfer.createFile({
               fileId: entry.fileId,
+              name: entry._name,
+              size: entry._size,
+              type: entry._type,
+            });
+          if (entry?.folderId) {
+            const folder = await transfer.createFolder({
+              folderId: entry.folderId,
               name: entry.name,
-              size: formatFileSize(entry.size),
-              rawsize: entry.size,
-            })
-        )
+              size: entry.size,
+              files: entry.files.length,
+            });
+            folder.Files = await Promise.all(
+              entry.files.map(
+                async (entry) =>
+                  await folder.createFile({
+                    fileId: entry.fileId,
+                    name: entry._name,
+                    size: entry._size,
+                    type: entry._type,
+                    path: entry._webkitRelativePath,
+                  })
+              )
+            );
+
+            return folder;
+          }
+        })
       );
 
       await Promise.all(
-        dirReceivers.map(async (receiver) => {
-          await dir.addUser(receiver, { through: Fileshake });
+        transferReceivers.map(async (receiver) => {
+          await transfer.addUser(receiver, { through: UserTransfer });
         })
       );
 
       if (receivers.length > 1) {
         const msgToSender = email.srcFileSentMultiple(sender, receivers.length, {
-          ...dir.dataValues,
-          Files: dirFiles,
+          ...transfer.dataValues,
+          Files: transferFiles,
         });
         await sgMail.send(msgToSender);
 
         await Promise.all(
           receivers.map(async (receiver) => {
             const msgToReceiver = email.dstFileSent(sender, receiver, {
-              ...dir.dataValues,
-              Files: dirFiles,
+              ...transfer.dataValues,
+              Files: transferFiles,
             });
             await sgMail.send(msgToReceiver);
           })
@@ -75,13 +97,13 @@ export default {
       }
 
       const msgToSender = email.srcFileSent(sender, receivers[0], {
-        ...dir.dataValues,
-        Files: dirFiles,
+        ...transfer.dataValues,
+        Files: transferFiles,
       });
 
       const msgToReceiver = email.dstFileSent(sender, receivers[0], {
-        ...dir.dataValues,
-        Files: dirFiles,
+        ...transfer.dataValues,
+        Files: transferFiles,
       });
 
       await sgMail.send(msgToSender);
@@ -97,29 +119,43 @@ export default {
   async getFile(req, res, next) {
     try {
       const requestId = uuidv4();
-      const { dirId, fileId } = req.params;
+      const { transferId, fileId } = req.params;
       const { sender, receiver } = req.query;
       if (!sender || !receiver) throwErr('Missing aditional information.', 401);
 
-      const dir = await Dir.findOne({ where: { dirId }, include: File });
-      const file = await File.findOne({ where: { fileId }, attributes: ['name'] });
-      if (!dir || !file)
-        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
+      const transfer = await Transfer.findOne({
+        where: { transferId },
+        include: { model: File, where: { fileId } },
+      });
 
-      io.getIO().of('/storage-server').emit('get-file', { requestId, dirId, single: true, fileId });
+      const { Files = [], Folders = [] } = await Transfer.findOne({
+        where: { transferId },
+        include: [File, Folder],
+      });
+
+      const [file] = transfer.Files;
+
+      const files = [...Files, ...Folders];
+
+      if (!transfer)
+        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
 
       Request.add({
         requestId,
         res,
         async fileDownloadCompleted() {
-          if (dir.Files.length > 1) {
-            const msgToSender = email.srcPartialDownload(sender, receiver, dir, file);
+          if (files.length > 1) {
+            const msgToSender = email.srcPartialDownload(sender, receiver, transfer, file);
             return await sgMail.send(msgToSender);
           }
-          const msgToSender = email.srcDownloadAll(sender, receiver, dir);
+          const msgToSender = email.srcDownloadAll(sender, receiver, transfer);
           await sgMail.send(msgToSender);
         },
       });
+
+      io.getIO()
+        .of('/storage-server')
+        .emit('get-file', { requestId, transferId, single: true, fileId });
 
       return res.attachment(file.name);
     } catch (err) {
@@ -127,34 +163,86 @@ export default {
     }
   },
 
-  async getAllFiles(req, res, next) {
+  async getFolder(req, res, next) {
     try {
       const requestId = uuidv4();
-      const { dirId } = req.params;
+      const { transferId, folderId } = req.params;
       const { sender, receiver } = req.query;
       if (!sender || !receiver) throwErr('Missing aditional information.', 401);
 
-      const dir = await Dir.findOne({
-        where: { dirId },
-        include: { model: File, attributes: ['fileId', 'name', 'size'] },
+      const transfer = await Transfer.findOne({
+        where: { transferId },
+        include: {
+          model: Folder,
+          where: { folderId },
+          include: File,
+        },
       });
 
-      if (!dir)
-        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
-      const { title, Files } = dir;
+      const { Files = [], Folders = [] } = await Transfer.findOne({
+        where: { transferId },
+        include: [File, Folder],
+      });
 
-      io.getIO()
-        .of('/storage-server')
-        .emit('get-file', { requestId, single: false, dirId, title, Files });
+      const [folder] = transfer.Folders;
+
+      const files = [...Files, ...Folders];
+
+      if (!transfer)
+        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
 
       Request.add({
         requestId,
         res,
         async fileDownloadCompleted() {
-          const msgToSender = email.srcDownloadAll(sender, receiver, dir);
+          if (files.length > 1) {
+            const msgToSender = email.srcPartialDownload(sender, receiver, transfer, folder);
+            return await sgMail.send(msgToSender);
+          }
+          const msgToSender = email.srcDownloadAll(sender, receiver, transfer);
           await sgMail.send(msgToSender);
         },
       });
+
+      io.getIO()
+        .of('/storage-server')
+        .emit('get-file', { requestId, transferId, single: true, isfolder: true, folder });
+
+      return res.attachment(`${folder.name}.zip`);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getTransfer(req, res, next) {
+    try {
+      const requestId = uuidv4();
+      const { transferId } = req.params;
+      const { sender, receiver } = req.query;
+      if (!sender || !receiver) throwErr('Missing aditional information.', 401);
+
+      const transfer = await Transfer.findOne({
+        where: { transferId },
+        include: [File, { model: Folder, include: File }],
+      });
+
+      if (!transfer)
+        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
+
+      const { title } = transfer;
+
+      Request.add({
+        requestId,
+        res,
+        async fileDownloadCompleted() {
+          const msgToSender = email.srcDownloadAll(sender, receiver, transfer);
+          await sgMail.send(msgToSender);
+        },
+      });
+
+      io.getIO()
+        .of('/storage-server')
+        .emit('get-file', { requestId, single: false, transferId, transfer });
 
       return res.attachment(`${title}.zip`);
     } catch (err) {
@@ -176,60 +264,48 @@ export default {
     }
   },
 
-  getAllocateFile(req, res) {
-    const { sender, receivers, size } = req.body;
+  getAllocateFile(req, res, next) {
+    try {
+      const transferId = uuidv4();
+      const { sender, receivers, size } = req.body;
 
-    if (validator.isEmpty(sender) || !validator.isEmail(sender))
-      throwErr('Your email is required and must be a valid email.', 422);
-    if (!receivers?.length > 0) throwErr('There are no receivers to send.', 422);
-    receivers.forEach((entry) => {
-      if (validator.isEmpty(entry) || !validator.isEmail(entry))
-        throwErr('Receiver email is required and must be a valid email.', 422);
-    });
-    if (size > MAX_FILE_SIZE) throwErr('File is too big! Max file size is 6GB', 422);
+      if (validator.isEmpty(sender) || !validator.isEmail(sender))
+        throwErr('Your email is required and must be a valid email.', 422);
+      if (!receivers?.length > 0) throwErr('There are no receivers to send.', 422);
+      receivers.forEach((entry) => {
+        if (validator.isEmpty(entry) || !validator.isEmail(entry))
+          throwErr('Receiver email is required and must be a valid email.', 422);
+      });
+      if (size > MAX_FILE_SIZE) throwErr('File is too big! Max file size is 4GB', 422);
 
-    const requestId = uuidv4();
+      Request.add({ transferId, sender, receivers });
 
-    Request.add({ requestId, dirId: uuidv4(), sender, receivers, files: [] });
-
-    res.status(200).json(requestId);
+      res.status(200).json(transferId);
+    } catch (err) {
+      next(err);
+    }
   },
 
   async fileHandler(req, res, next) {
     try {
-      const { fileComplete, complete } = req.body;
-
-      if (fileComplete) {
-        const { requestId, fileId, name, size } = req.body;
-        const { files } =
-          Request.queue.find((entry) => entry.requestId === requestId) ??
-          throwErr('Something went wrong, try again later', 422);
-
-        files.push({ fileId, name, size });
-        return res.sendStatus(200);
-      }
+      const { complete } = req.body;
 
       if (complete) {
-        const { requestId, title, message } = req.body;
-        const request = Request.get(requestId);
-        req.body = { title: !title ? request.files[0].name : title, message, ...request };
-
+        const { transferId, title, message, files } = req.body;
+        const request = Request.get(transferId, 'transferId');
+        console.log(request);
+        req.body = { title, message, files, ...request };
         return next();
       }
 
-      const { requestId, filename, part } = req.query;
-      const { dirId } =
-        Request.queue.find((entry) => entry.requestId === requestId) ??
+      const { transferId, filename, part } = req.query;
+      Request.queue.find((entry) => entry.transferId === transferId) ??
         throwErr('Something went wrong, try again later', 500);
       const { headers, socketId } = req;
       const filePartId = `${filename}${part}`;
       const bb = busboy({ headers });
 
       bb.on('file', (_, file) => {
-        io.getIO()
-          .of('/storage-server')
-          .emit('alloc-storage-server', { filePartId, dirId, filename });
-
         Request.add({
           requestId: filePartId,
           async filePartStream(res) {
@@ -240,11 +316,15 @@ export default {
             await pipeline(file, res);
           },
         });
+
+        io.getIO()
+          .of('/storage-server')
+          .emit('alloc-storage-server', { filePartId, transferId, filename });
       });
 
       await pipeline(req, bb);
 
-      await new Promise((res, _) => io.getServerSocket().once(filePartId, (ack) => res(ack)));
+      await new Promise((res) => io.getServerSocket().once(filePartId, (ack) => res(ack)));
 
       res.sendStatus(200);
     } catch (err) {
