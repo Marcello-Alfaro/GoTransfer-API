@@ -801,11 +801,11 @@ export default {
       `,
     };
   },
-  srcDownloadAll(sender, receiver, dir) {
+  srcDownloadAll(sender, receiver, transfer) {
     return {
       to: sender,
       from: FROM_EMAIL,
-      subject: `${receiver} downloaded "${dir.title}" and all its files`,
+      subject: `${receiver} downloaded "${transfer.title}" and all its files`,
       html: `<!DOCTYPE html>
             <html
               lang="en"
@@ -878,7 +878,7 @@ export default {
                                 "
                               >
                               This email is to notify you that ${receiver} successfully downloaded "${
-        dir.title
+        transfer.title
       }" and all its files.
                               </h1>
                             </td>
@@ -928,7 +928,7 @@ export default {
                                 "
                               >
                                 <ol>
-                                ${dir.Files.reduce((accum, entry) => {
+                                ${transfer.files.reduce((accum, entry) => {
                                   accum += `<li><strong>${entry.name}</strong>
                                   <p class="size">size: ${entry.size}</p>
                                   </li>`;

@@ -135,7 +135,7 @@ export default {
 
       const [file] = transfer.Files;
 
-      const files = [...Files, ...Folders];
+      transfer.files = [...Files, ...Folders];
 
       if (!transfer)
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
@@ -144,7 +144,7 @@ export default {
         requestId,
         res,
         async fileDownloadCompleted() {
-          if (files.length > 1) {
+          if (transfer.files.length > 1) {
             const msgToSender = email.srcPartialDownload(sender, receiver, transfer, file);
             return await sgMail.send(msgToSender);
           }
