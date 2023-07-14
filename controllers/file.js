@@ -111,7 +111,7 @@ export default {
 
       res.status(201).json({ message: `Your files were sent successfully! 🍧` });
     } catch (err) {
-      io.getIO().of('/storage-server').emit('unlink-file', { dirId: req.body.dirId });
+      io.getIO().of('/storage-server').emit('unlink-file', { transfer: req.body.transferId });
       next(err);
     }
   },

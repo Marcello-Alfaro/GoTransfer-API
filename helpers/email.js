@@ -238,7 +238,7 @@ export default {
                         "
                       >
                         <p style="margin: 0; font-size: 14px; line-height: 20px">
-                          Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                          Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                         </p>
                       </td>
                     </tr>
@@ -409,7 +409,7 @@ export default {
                         "
                       >
                         <p style="margin: 0; font-size: 14px; line-height: 20px">
-                          Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                          Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                         </p>
                       </td>
                     </tr>
@@ -620,7 +620,7 @@ export default {
                         "
                       >
                         <p style="margin: 0; font-size: 14px; line-height: 20px">
-                          Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                          Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                         </p>
                       </td>
                     </tr>
@@ -787,7 +787,7 @@ export default {
                         "
                       >
                         <p style="margin: 0; font-size: 14px; line-height: 20px">
-                          Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                          Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                         </p>
                       </td>
                     </tr>
@@ -957,7 +957,7 @@ export default {
                               "
                             >
                               <p style="margin: 0; font-size: 14px; line-height: 20px">
-                                Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                                Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                               </p>
                             </td>
                           </tr>
@@ -1162,7 +1162,7 @@ export default {
                       "
                     >
                       <p style="margin: 0; font-size: 14px; line-height: 20px">
-                        Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                        Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                       </p>
                     </td>
                   </tr>
@@ -1344,7 +1344,7 @@ export default {
                       "
                     >
                       <p style="margin: 0; font-size: 14px; line-height: 20px">
-                        Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                        Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                       </p>
                     </td>
                   </tr>
@@ -1526,7 +1526,7 @@ export default {
                       "
                     >
                       <p style="margin: 0; font-size: 14px; line-height: 20px">
-                        Copyright &reg; ${new Date().getFullYear()} EasyTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                        Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                       </p>
                     </td>
                   </tr>
