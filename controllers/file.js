@@ -179,6 +179,9 @@ export default {
         },
       });
 
+      if (!transfer)
+        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
+
       const { Files = [], Folders = [] } = await Transfer.findOne({
         where: { transferId },
         include: [File, Folder],
@@ -187,9 +190,7 @@ export default {
       const [folder] = transfer.Folders;
 
       const files = [...Files, ...Folders];
-
-      if (!transfer)
-        throwErr('Something went wrong, link expired or files were already downloaded!', 404);
+      transfer.Files = files;
 
       Request.add({
         requestId,
@@ -230,6 +231,8 @@ export default {
         throwErr('Something went wrong, link expired or files were already downloaded!', 404);
 
       const { title } = transfer;
+
+      transfer.Files = [...transfer.Folders, ...transfer.Files];
 
       Request.add({
         requestId,
@@ -293,7 +296,6 @@ export default {
       if (complete) {
         const { transferId, title, message, files } = req.body;
         const request = Request.get(transferId, 'transferId');
-        console.log(request);
         req.body = { title, message, files, ...request };
         return next();
       }

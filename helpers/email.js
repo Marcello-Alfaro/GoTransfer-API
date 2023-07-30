@@ -928,7 +928,7 @@ export default {
                                 "
                               >
                                 <ol>
-                                ${transfer.files.reduce((accum, entry) => {
+                                ${transfer.Files.reduce((accum, entry) => {
                                   accum += `<li><strong>${entry.name}</strong>
                                   <p class="size">size: ${formatFileSize(entry.size)}</p>
                                   </li>`;
