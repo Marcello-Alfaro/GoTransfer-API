@@ -1,8 +1,9 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database/connection.js';
 
-const Folder = sequelize.define(
-  'Folders',
+class Folder extends Model {}
+
+Folder.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -11,6 +12,8 @@ const Folder = sequelize.define(
     },
     folderId: {
       type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      unique: true,
       allowNull: false,
     },
     name: {
@@ -22,16 +25,16 @@ const Folder = sequelize.define(
       allowNull: false,
     },
     files: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+      type: DataTypes.VIRTUAL,
     },
   },
   {
+    sequelize,
     paranoid: true,
     hooks: {
       async afterDestroy(instance) {
         const files = await instance.getFiles();
-        files.forEach(async (entry) => entry.destroy());
+        files.forEach(async (entry) => await entry.destroy());
       },
     },
   }

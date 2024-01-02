@@ -1,8 +1,9 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database/connection.js';
 
-const UsersTransfers = sequelize.define(
-  'UsersTransfers',
+class UserTransfer extends Model {}
+
+UserTransfer.init(
   {
     downloaded: {
       type: DataTypes.BOOLEAN,
@@ -10,7 +11,7 @@ const UsersTransfers = sequelize.define(
       allowNull: false,
     },
   },
-  { paranoid: true }
+  { sequelize, tableName: 'UsersTransfers', paranoid: true }
 );
 
-export default UsersTransfers;
+export default UserTransfer;

@@ -1,8 +1,19 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database/connection.js';
+import ErrorObject from '../helpers/error.js';
+import Socket from '../socket.js';
+import { pipeline } from 'stream';
 
-const File = sequelize.define(
-  'Files',
+class File extends Model {
+  triggerStream(res) {
+    pipeline(this.file, res, (err) => err && console.error(err));
+    this.file.on('data', (chunk) =>
+      Socket.toClient(this.clientSocket).emit('bytes-received', chunk.length)
+    );
+  }
+}
+
+File.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -11,6 +22,8 @@ const File = sequelize.define(
     },
     fileId: {
       type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      unique: true,
       allowNull: false,
     },
     name: {
@@ -28,10 +41,15 @@ const File = sequelize.define(
     path: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: 'root',
+    },
+    file: {
+      type: DataTypes.VIRTUAL,
+    },
+    clientSocket: {
+      type: DataTypes.VIRTUAL,
     },
   },
-  { paranoid: true }
+  { sequelize, paranoid: true }
 );
 
 export default File;

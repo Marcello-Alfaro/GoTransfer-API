@@ -1,27 +1,33 @@
-import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database/connection.js';
+import { DataTypes, Model } from 'sequelize';
 
-class User extends Model {}
+class Disk extends Model {}
 
-User.init(
+Disk.init(
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    userId: {
+    diskId: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
       allowNull: false,
     },
-    email: {
+    path: {
       type: DataTypes.STRING,
-      unique: true,
+      allowNull: false,
+    },
+    size: {
+      type: DataTypes.DOUBLE,
+      allowNull: false,
+    },
+    free: {
+      type: DataTypes.DOUBLE,
       allowNull: false,
     },
   },
   { sequelize, paranoid: true }
 );
 
-export default User;
+export default Disk;

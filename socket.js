@@ -1,32 +1,38 @@
 import { Server } from 'socket.io';
 import { CORS_ORIGIN } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
-import throwErr from './helpers/throwErr.js';
-let io;
-let socket;
-let storageServerSocket;
+import ErrorObject from './helpers/error.js';
+import StorageServer from './models/storageServer.js';
+import Transfer from './models/transfer.js';
 
-export default {
-  init(server) {
-    io = new Server(server, {
+export default class Socket {
+  static #io;
+
+  static init(server) {
+    this.#io = new Server(server, {
       cors: {
         origin: CORS_ORIGIN,
         methods: ['GET', 'POST'],
       },
     });
 
-    io.on('connection', (sck) => {
+    this.#io.of('/clients').on('connection', (socket) => {
       console.log('A client has connected!');
-      socket = sck;
+
+      socket.on('disconnect', (reason) => {
+        Transfer.findBySocket(socket.id)?.abort();
+        console.log(`Connection with client ${socket.id} lost due to ${reason}.`);
+      });
     });
 
-    io.of('/storage-server')
+    this.#io
+      .of('/storage-servers')
       .use(async (socket, next) => {
         try {
           const {
             auth: { token },
           } = socket.handshake;
-          if (!token) throwErr('No valid auth token!', 401);
+          if (!token) throw new ErrorObject('No valid auth token!', 401);
           await jwtVerify(token);
           next();
         } catch (err) {
@@ -34,32 +40,37 @@ export default {
         }
       })
       .on('connection', (socket) => {
-        console.log('Connection with storage server established!');
-        storageServerSocket = socket;
+        socket.on('server-info', async (server) => {
+          await StorageServer.add({ ...server, socketId: socket.id });
 
-        socket.on('disconnect', (reason) => {
-          console.error(`Connection with storage server lost due to ${reason}.`);
-          storageServerSocket = null;
+          console.log(`Connection with ${server.name} server established!`);
+        });
+
+        socket.on('disconnect', async (reason) => {
+          const server = await StorageServer.disconnect(socket.id);
+
+          console.log(`Connection with ${server.name} server lost due to ${reason}.`);
         });
       });
+  }
 
-    return io;
-  },
+  static getIO() {
+    if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
+    return this.#io;
+  }
 
-  getIO() {
-    if (!io) throwErr('Socket.io not initialized!');
-    return io;
-  },
+  static toClient(socketId) {
+    if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
+    return this.#io.of('/clients').to(socketId);
+  }
 
-  getSocket() {
-    if (!io) throwErr('Socket.io not initialized!');
-    return socket;
-  },
+  static toServer(socketId) {
+    if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
+    return this.#io.of('/storage-servers').to(socketId);
+  }
 
-  getServerSocket() {
-    if (!io) throwErr('Socket.io not initialized!');
-    return storageServerSocket;
-  },
-};
-
-process.on('uncaughtException', (err) => console.error(err));
+  static getServerSocket(socketId) {
+    if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
+    return this.#io.of('/storage-servers').sockets.get(socketId);
+  }
+}

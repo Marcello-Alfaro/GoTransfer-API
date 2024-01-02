@@ -1,7 +1,8 @@
-import throwErr from '../helpers/throwErr.js';
-import io from '../socket.js';
+import ErrorObject from '../helpers/error.js';
+import StorageServer from '../models/storageServer.js';
 
 export default (_, __, next) => {
-  if (!io.getServerSocket()) throwErr('Internal Server Error, try again later', 500);
+  if (!StorageServer.getAllActive().length > 0)
+    throw new ErrorObject('Internal Server Error, try again later', 500);
   next();
 };

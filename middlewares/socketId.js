@@ -1,9 +1,9 @@
-import throwErr from '../helpers/throwErr.js';
+import ErrorObject from '../helpers/error.js';
 
 export default (req, _, next) => {
   try {
     const { socketid } = req.headers;
-    if (!socketid) throwErr('No socket ID present.', 401);
+    if (!socketid) throw new ErrorObject('No socket ID present.', 401);
     req.socketId = socketid;
     next();
   } catch (err) {
