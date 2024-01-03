@@ -4,6 +4,7 @@ import Email from './email.js';
 class TransferDownloaded extends Email {
   constructor(to, transfer) {
     super(to, transfer);
+    this.image = 'check.png';
     this.subject = `${this.to.email} downloaded "${this.transfer.title}".`;
     this.buildEmail(
       `<h1 style="

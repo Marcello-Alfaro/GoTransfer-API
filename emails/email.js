@@ -268,7 +268,7 @@ ol li:last-of-type {
                     "
                   >
                     <img
-                      src="${API_URL}/images/expire.png"
+                      src="${API_URL}/images/${this.image}"
                       width="115"
                       alt="expire_icon"
                       style="width: 115px; max-width: 80%; margin-bottom: 20px"

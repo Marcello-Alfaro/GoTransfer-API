@@ -4,6 +4,7 @@ import Email from './email.js';
 class TransferSentSrc extends Email {
   constructor(to, transfer) {
     super(to, transfer);
+    this.image = 'upload.png';
     this.subject = `"${this.transfer.title}" was sent successfully to ${
       this.transfer.receivers.length > 1
         ? `${this.transfer.receivers.at(0)} and ${this.transfer.receivers.length - 1} more`

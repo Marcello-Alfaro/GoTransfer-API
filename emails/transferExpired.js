@@ -6,6 +6,7 @@ export default class TransferExpired extends Email {
 
   constructor(to, transfer) {
     super(to, transfer);
+    this.image = 'expire.png';
     this.subject = `"${transfer.title}" expired!`;
     this.buildEmail(
       `<h1 style="

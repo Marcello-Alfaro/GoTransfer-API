@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 export default class TransferToExpired extends Email {
   constructor(to, transfer) {
     super(to, transfer);
+    this.image = 'expire.png';
     this.subject = `"${transfer.title}" will expire in 1 day!`;
     this.buildEmail(
       `<h1 style="

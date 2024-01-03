@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 class TransferSentDst extends Email {
   constructor(to, transfer) {
     super(to, transfer);
+    this.image = 'download.png';
     this.subject = `${this.transfer.sender} sent you "${this.transfer.title}"`;
     this.buildEmail(
       `<h1 style="
