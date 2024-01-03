@@ -40,7 +40,7 @@ export default {
 
       await transfer.set({ userId: user.id, diskId }).save({ files, folders, transferReceivers });
 
-      /* if (transferReceivers.length > 1) {
+      if (transferReceivers.length > 1) {
         await new TransferSentSrc(sender, transfer).send();
 
         await Promise.all(
@@ -53,7 +53,7 @@ export default {
       }
 
       await new TransferSentSrc(sender, transfer).send();
-      await new TransferSentDst(transferReceivers[0], transfer).send(); */
+      await new TransferSentDst(transferReceivers[0], transfer).send();
 
       res.status(201).json({ message: `Your files were sent successfully! 🍧` });
     } catch (err) {
@@ -173,8 +173,12 @@ export default {
 
       const bb = busboy({ headers });
 
-      bb.on('file', (path, file, info) => {
-        const { filename: name, mimeType: type, size = headers['content-length'] } = info;
+      bb.on('file', (payload, file, info) => {
+        const [path, name] = [
+          payload.split('/').slice(0, -1).join('/'),
+          payload.split('/').slice(-1)[0],
+        ];
+        const { mimeType: type, size = +headers['content-length'] } = info;
 
         const fileId = transfer.pushFile(
           File.build({
