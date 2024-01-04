@@ -40,7 +40,6 @@ File.init(
     },
     path: {
       type: DataTypes.STRING,
-      allowNull: false,
     },
     file: {
       type: DataTypes.VIRTUAL,

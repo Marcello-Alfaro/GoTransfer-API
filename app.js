@@ -2,19 +2,17 @@ import express from 'express';
 import sequelize from './database/connection.js';
 import './models/associations.js';
 import Socket from './socket.js';
-import sgMail from '@sendgrid/mail';
 import appRoutes from './routes/appRoutes.js';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import storageServerStatus from './middlewares/storageServerStatus.js';
 import errHandler from './middlewares/errHandler.js';
-import { PORT, CORS_OPTIONS, SENDGRID_API_KEY } from './config/config.js';
+import { PORT, CORS_OPTIONS } from './config/config.js';
 import serverInit from './serverInit.js';
 
 try {
   const app = express();
-  sgMail.setApiKey(SENDGRID_API_KEY);
 
   app.use(express.json());
   app.use(compression());
@@ -27,7 +25,7 @@ try {
 
   await sequelize.authenticate();
   console.log('Connection to database has been established successfully!');
-  await sequelize.sync();
+  await sequelize.sync({ force: true });
 
   const server = app.listen(PORT ?? 3000, serverInit);
 
