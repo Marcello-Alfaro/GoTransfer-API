@@ -173,12 +173,8 @@ export default {
 
       const bb = busboy({ headers });
 
-      bb.on('file', (payload, file, info) => {
-        const [path, name] = [
-          payload.split('/').slice(0, -1).join('/'),
-          payload.split('/').slice(-1)[0],
-        ];
-        const { mimeType: type, size = +headers['content-length'] } = info;
+      bb.on('file', (path, file, info) => {
+        const { filename: name, mimeType: type, size = +headers['content-length'] } = info;
 
         const fileId = transfer.pushFile(
           File.build({
