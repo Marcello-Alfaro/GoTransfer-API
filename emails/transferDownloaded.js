@@ -2,10 +2,10 @@ import { MAX_FILES_EMAIL } from '../config/config.js';
 import Email from './email.js';
 
 class TransferDownloaded extends Email {
-  constructor(to, transfer) {
-    super(to, transfer);
+  constructor(download) {
+    super(download.transfer.User.email, download.transfer);
     this.image = 'check.png';
-    this.subject = `${this.to.email} downloaded "${this.transfer.title}".`;
+    this.subject = `${download.dstUser.email} downloaded "${this.transfer.title}".`;
     this.buildEmail(
       `<h1 style="
       margin-top: 0;
@@ -15,7 +15,7 @@ class TransferDownloaded extends Email {
       font-weight: normal;
       letter-spacing: -0.02em;
     ">
-    This email is to inform you that ${this.to.email} successfully downloaded <strong>"${this.transfer.title}"</strong></h1>`,
+    This email is to inform you that ${download.dstUser.email} successfully downloaded <strong>"${this.transfer.title}"</strong></h1>`,
       `<ol>
     ${this.files.slice(0, MAX_FILES_EMAIL).reduce((accum, file) => {
       accum += `<li><strong>${file.name}</strong>

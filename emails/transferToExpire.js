@@ -48,7 +48,7 @@ export default class TransferToExpired extends Email {
                     mso-padding-alt: 0;
                     text-underline-color: #228be6;" 
       href="${API_URL}/download/${jwt.sign(
-            { tid: this.transfer.transferId, dste: this.to.userId },
+            { tid: this.transfer.transferId, dstid: this.to.userId },
             JWT_SECRET,
             {
               expiresIn: `${TRANSFER_EXPIRE_TIME}d`,
@@ -70,7 +70,7 @@ export default class TransferToExpired extends Email {
               tid: this.transfer.transferId,
               dtyp: this.files.at(0)?.fileId ? 'b5ac9c2b' : '08ad027d',
               ffid: this.files.at(0)?.fileId ?? this.files.at(0).folderId,
-              dste: this.to.userId,
+              dstid: this.to.userId,
             },
             JWT_SECRET,
             { expiresIn: `${TRANSFER_EXPIRE_TIME}d` }

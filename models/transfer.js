@@ -224,10 +224,6 @@ Transfer.init(
     message: {
       type: DataTypes.STRING,
     },
-    totalFiles: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
     size: {
       type: DataTypes.DOUBLE,
       allowNull: false,

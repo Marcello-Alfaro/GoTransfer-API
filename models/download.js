@@ -61,6 +61,9 @@ Download.init(
     mainHttpResponse: {
       type: DataTypes.VIRTUAL,
     },
+    dstUser: {
+      type: DataTypes.VIRTUAL,
+    },
     transfer: {
       type: DataTypes.VIRTUAL,
     },
@@ -70,8 +73,7 @@ Download.init(
     paranoid: true,
     hooks: {
       async afterCreate(download) {
-        const user = await User.findOne({ where: { id: download.transfer.userId } });
-        await new TransferDownloaded(user, download.transfer).send();
+        await new TransferDownloaded(download).send();
       },
     },
   }

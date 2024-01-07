@@ -14,6 +14,7 @@ import busboy from 'busboy';
 import TransferSentSrc from '../emails/transferSentSrc.js';
 import TransferSentDst from '../emails/transferSentDst.js';
 import Disk from '../models/disk.js';
+import UserTransfer from '../models/userTransfer.js';
 
 export default {
   async getTransferResult(req, res, next) {
@@ -66,7 +67,7 @@ export default {
 
   async getDownloadTransfer(req, res, next) {
     try {
-      const { tid: transferId, dtyp: type, ffid, dste } = req.token;
+      const { tid: transferId, dtyp: type, ffid, dstid } = req.token;
 
       const transfer = await (async () => {
         try {
@@ -74,7 +75,7 @@ export default {
             return await Transfer.findOne({
               where: { transferId },
               include: [
-                { model: User, where: { userId: dste } },
+                User,
                 { model: File, where: { fileId: ffid } },
                 { model: Disk, include: StorageServer },
               ],
@@ -84,7 +85,7 @@ export default {
             return await Transfer.findOne({
               where: { transferId },
               include: [
-                { model: User, where: { userId: dste } },
+                User,
                 { model: Folder, where: { folderId: ffid }, include: File },
                 { model: Disk, include: StorageServer },
               ],
@@ -93,7 +94,7 @@ export default {
           return await Transfer.findOne({
             where: { transferId },
             include: [
-              { model: User, where: { userId: dste } },
+              User,
               File,
               { model: Folder, include: File },
               { model: Disk, include: StorageServer },
@@ -106,10 +107,15 @@ export default {
 
       if (!transfer) throw new ErrorObject('Transfer expired or invalid!', 404);
 
+      const user = await User.findOne({ where: { userId: dstid } });
+
+      if (!user) throw new ErrorObject(`User with id of ${dstid} not found!`, 404);
+
       const { downloadId } = Download.build({
         mainHttpResponse: res,
-        userId: transfer.User.id,
+        userId: user.id,
         transferId: transfer.id,
+        dstUser: user,
         transfer,
       }).add();
 
