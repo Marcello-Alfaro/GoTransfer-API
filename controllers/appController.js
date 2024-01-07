@@ -1,5 +1,6 @@
-import { MAX_FILE_SIZE } from '../config/config.js';
+import { MAX_FILE_SIZE, TRANSFER_EXPIRE_TIME } from '../config/config.js';
 import ErrorObject from '../helpers/error.js';
+import days from '../helpers/days.js';
 import Transfer from '../models/transfer.js';
 import File from '../models/file.js';
 import Folder from '../models/folder.js';
@@ -38,7 +39,9 @@ export default {
         )
       );
 
-      await transfer.set({ userId: user.id, diskId }).save({ files, folders, transferReceivers });
+      await transfer
+        .set({ expire: days(TRANSFER_EXPIRE_TIME), userId: user.id, diskId })
+        .save({ files, folders, transferReceivers });
 
       if (transferReceivers.length > 1) {
         await new TransferSentSrc(sender, transfer).send();

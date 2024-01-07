@@ -235,7 +235,6 @@ Transfer.init(
     expire: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: new Date(days(TRANSFER_EXPIRE_TIME)),
     },
     warned: {
       type: DataTypes.BOOLEAN,
