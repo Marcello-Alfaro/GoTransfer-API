@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database/connection.js';
-import ErrorObject from '../helpers/error.js';
+import ErrorObject from '../helpers/errorObject.js';
 import Socket from '../socket.js';
 import { pipeline } from 'stream';
 

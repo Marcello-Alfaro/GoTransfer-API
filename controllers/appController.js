@@ -1,6 +1,5 @@
-import { MAX_FILE_SIZE, TRANSFER_EXPIRE_TIME } from '../config/config.js';
-import ErrorObject from '../helpers/error.js';
-import days from '../helpers/days.js';
+import { DAY_IN_MILISECONDS, MAX_FILE_SIZE, TRANSFER_EXPIRE_TIME } from '../config/config.js';
+import ErrorObject from '../helpers/errorObject.js';
 import Transfer from '../models/transfer.js';
 import File from '../models/file.js';
 import Folder from '../models/folder.js';
@@ -14,7 +13,6 @@ import busboy from 'busboy';
 import TransferSentSrc from '../emails/transferSentSrc.js';
 import TransferSentDst from '../emails/transferSentDst.js';
 import Disk from '../models/disk.js';
-import UserTransfer from '../models/userTransfer.js';
 
 export default {
   async getTransferResult(req, res, next) {
@@ -41,7 +39,11 @@ export default {
       );
 
       await transfer
-        .set({ expire: days(TRANSFER_EXPIRE_TIME), userId: user.id, diskId })
+        .set({
+          expire: Date.now() + TRANSFER_EXPIRE_TIME * DAY_IN_MILISECONDS,
+          userId: user.id,
+          diskId,
+        })
         .save({ files, folders, transferReceivers });
 
       if (transferReceivers.length > 1) {

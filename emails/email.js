@@ -1,6 +1,6 @@
 import { API_URL, FROM_EMAIL, TRANSFER_EXPIRE_TIME, SENDGRID_API_KEY } from '../config/config.js';
 import sgMail from '@sendgrid/mail';
-import ErrorObject from '../helpers/error.js';
+import ErrorObject from '../helpers/errorObject.js';
 
 sgMail.setApiKey(SENDGRID_API_KEY);
 

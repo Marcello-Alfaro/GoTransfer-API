@@ -1,6 +1,6 @@
 import sequelize from '../database/connection.js';
 import { DataTypes, Model, Sequelize } from 'sequelize';
-import ErrorObject from '../helpers/error.js';
+import ErrorObject from '../helpers/errorObject.js';
 import Transfer from './transfer.js';
 import Disk from './disk.js';
 

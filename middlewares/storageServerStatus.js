@@ -1,4 +1,4 @@
-import ErrorObject from '../helpers/error.js';
+import ErrorObject from '../helpers/errorObject.js';
 import StorageServer from '../models/storageServer.js';
 
 export default (_, __, next) => {

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/config.js';
-import ErrorObject from './error.js';
+import ErrorObject from './errorObject.js';
 
 export default (token) =>
   new Promise((res, rej) => {

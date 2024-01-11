@@ -1,12 +1,10 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database/connection.js';
-import { TRANSFER_EXPIRE_TIME } from '../config/config.js';
 import StorageServer from './storageServer.js';
-import ErrorObject from '../helpers/error.js';
+import ErrorObject from '../helpers/errorObject.js';
 import UserTransfer from './userTransfer.js';
 import Socket from '../socket.js';
 import Folder from './folder.js';
-import days from '../helpers/days.js';
 
 class Transfer extends Model {
   static #transfers = [];

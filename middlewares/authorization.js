@@ -1,4 +1,4 @@
-import ErrorObject from '../helpers/error.js';
+import ErrorObject from '../helpers/errorObject.js';
 import jwtVerify from '../helpers/jwtVerify.js';
 
 export default async (req, _, next) => {

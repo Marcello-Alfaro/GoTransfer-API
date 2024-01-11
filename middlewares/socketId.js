@@ -1,4 +1,4 @@
-import ErrorObject from '../helpers/error.js';
+import ErrorObject from '../helpers/errorObject.js';
 
 export default (req, _, next) => {
   try {

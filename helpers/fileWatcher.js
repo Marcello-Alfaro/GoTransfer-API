@@ -6,8 +6,7 @@ import Folder from '../models/folder.js';
 import File from '../models/file.js';
 import UsersTransfers from '../models/userTransfer.js';
 import { Op } from 'sequelize';
-import days from './days.js';
-import { FILE_WATCHER_INTERVAL } from '../config/config.js';
+import { DAY_IN_MILISECONDS, FILE_WATCHER_INTERVAL } from '../config/config.js';
 import TransferToExpired from '../emails/transferToExpire.js';
 import TransferExpired from '../emails/transferExpired.js';
 import Disk from '../models/disk.js';
@@ -16,7 +15,7 @@ import StorageServer from '../models/storageServer.js';
 (async function fileWatcher() {
   try {
     const transfersToExpire = await Transfer.findAll({
-      where: { expire: { [Op.lt]: days(1) }, warned: false },
+      where: { expire: { [Op.lt]: Date.now() + DAY_IN_MILISECONDS }, warned: false },
       include: [User, File, Folder],
     });
 

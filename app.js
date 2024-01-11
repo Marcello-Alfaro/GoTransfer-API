@@ -7,7 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import storageServerStatus from './middlewares/storageServerStatus.js';
-import errHandler from './middlewares/errHandler.js';
+import errorHandler from './middlewares/errorHandler.js';
 import { PORT, CORS_OPTIONS } from './config/config.js';
 import serverInit from './serverInit.js';
 
@@ -21,7 +21,7 @@ try {
   app.use(express.static('public'));
   app.use(storageServerStatus);
   app.use(appRoutes);
-  app.use(errHandler);
+  app.use(errorHandler);
 
   await sequelize.authenticate();
   console.log('Connection to database has been established successfully!');

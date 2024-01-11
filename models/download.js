@@ -2,7 +2,7 @@ import sequelize from '../database/connection.js';
 import { DataTypes, Model } from 'sequelize';
 import UserTransfer from './userTransfer.js';
 import TransferDownloaded from '../emails/transferDownloaded.js';
-import ErrorObject from '../helpers/error.js';
+import ErrorObject from '../helpers/errorObject.js';
 import User from './user.js';
 
 class Download extends Model {

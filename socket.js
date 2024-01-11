@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import { CORS_ORIGIN } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
-import ErrorObject from './helpers/error.js';
+import ErrorObject from './helpers/errorObject.js';
 import StorageServer from './models/storageServer.js';
 import Transfer from './models/transfer.js';
 
