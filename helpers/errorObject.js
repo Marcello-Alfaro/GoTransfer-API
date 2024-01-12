@@ -1,8 +1,6 @@
 export default class ErrorObject extends Error {
   constructor(message, status, errors = []) {
-    super();
-
-    this.message = message;
+    super(message);
     this.status = status;
     this.isOperational = true;
     this.errors = errors;
