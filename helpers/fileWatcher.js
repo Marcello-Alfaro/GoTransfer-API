@@ -36,7 +36,7 @@ import StorageServer from '../models/storageServer.js';
       transfersToExpire.forEach(async (transfer) => {
         transfer.receivers.forEach(async (user) => {
           await new TransferToExpired(user, transfer).send();
-          await transfer.set({ warned: !transfer.warned }).save();
+          await transfer.set({ warned: true }).save();
         });
       });
     }
