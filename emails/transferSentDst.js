@@ -1,4 +1,10 @@
-import { API_URL, TRANSFER_EXPIRE_TIME, JWT_SECRET, MAX_FILES_EMAIL } from '../config/config.js';
+import {
+  API_URL,
+  API_PATH,
+  TRANSFER_EXPIRE_TIME,
+  JWT_SECRET,
+  MAX_FILES_EMAIL,
+} from '../config/config.js';
 import Email from './email.js';
 import jwt from 'jsonwebtoken';
 
@@ -45,7 +51,7 @@ class TransferSentDst extends Email {
                       display: inline-block;
                       mso-padding-alt: 0;
                       text-underline-color: #228be6;" 
-        href="${API_URL}/download/${jwt.sign(
+        href="${API_URL + API_PATH}/download/${jwt.sign(
               { tid: this.transfer.transferId, dstid: this.to.userId },
               JWT_SECRET,
               {
@@ -63,7 +69,7 @@ class TransferSentDst extends Email {
                       display: inline-block;
                       mso-padding-alt: 0;
                       text-underline-color: #228be6;" 
-          href="${API_URL}/download/${jwt.sign(
+          href="${API_URL + API_PATH}/download/${jwt.sign(
               {
                 tid: this.transfer.transferId,
                 dtyp: this.files.at(0)?.fileId ? 'b5ac9c2b' : '08ad027d',

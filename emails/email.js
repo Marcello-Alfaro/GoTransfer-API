@@ -1,4 +1,10 @@
-import { API_URL, FROM_EMAIL, TRANSFER_EXPIRE_TIME, SENDGRID_API_KEY } from '../config/config.js';
+import {
+  API_URL,
+  API_PATH,
+  FROM_EMAIL,
+  TRANSFER_EXPIRE_TIME,
+  SENDGRID_API_KEY,
+} from '../config/config.js';
 import sgMail from '@sendgrid/mail';
 import ErrorObject from '../helpers/errorObject.js';
 
@@ -181,7 +187,7 @@ ol li:last-of-type {
                 <tr>
                     <td style="padding: 30px; background-color: #ffffff">
                     <img
-                    src="${API_URL}/images/logo.png"
+                    src="${API_URL + API_PATH}/images/logo.png"
                     width="250"
                     alt="Logo"
                     style="
@@ -268,7 +274,7 @@ ol li:last-of-type {
                     "
                   >
                     <img
-                      src="${API_URL}/images/${this.image}"
+                      src="${API_URL + API_PATH}/images/${this.image}"
                       width="115"
                       alt="expire_icon"
                       style="width: 115px; max-width: 80%; margin-bottom: 20px"

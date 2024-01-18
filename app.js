@@ -18,7 +18,7 @@ try {
   app.use(compression());
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(cors(CORS_OPTIONS));
-  app.use(express.static('public'));
+  app.use(API_PATH, express.static('public'));
   app.use(storageServerStatus);
   app.use(API_PATH, appRoutes);
   app.use(errorHandler);
