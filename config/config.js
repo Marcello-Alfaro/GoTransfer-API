@@ -7,6 +7,7 @@ export const {
   SENDGRID_API_KEY,
   FROM_EMAIL,
   API_URL,
+  API_PATH,
   DB_DATABASE,
   DB_USER,
   DB_PASSWORD,

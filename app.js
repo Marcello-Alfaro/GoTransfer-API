@@ -1,3 +1,4 @@
+import { API_PATH, PORT, CORS_OPTIONS } from './config/config.js';
 import express from 'express';
 import sequelize from './database/connection.js';
 import './models/associations.js';
@@ -8,7 +9,6 @@ import helmet from 'helmet';
 import compression from 'compression';
 import storageServerStatus from './middlewares/storageServerStatus.js';
 import errorHandler from './middlewares/errorHandler.js';
-import { PORT, CORS_OPTIONS } from './config/config.js';
 import serverInit from './serverInit.js';
 
 try {
@@ -20,7 +20,7 @@ try {
   app.use(cors(CORS_OPTIONS));
   app.use(express.static('public'));
   app.use(storageServerStatus);
-  app.use(appRoutes);
+  app.use(API_PATH, appRoutes);
   app.use(errorHandler);
 
   await sequelize.authenticate();
