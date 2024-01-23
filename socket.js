@@ -10,7 +10,7 @@ export default class Socket {
 
   static init(server) {
     this.#io = new Server(server, {
-      path: `/${API_PATH}.io/`,
+      path: `${API_PATH}.io/`,
       cors: {
         origin: CORS_ORIGIN,
         methods: ['GET', 'POST'],
