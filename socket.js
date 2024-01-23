@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { CORS_ORIGIN } from './config/config.js';
+import { API_PATH, CORS_ORIGIN } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
 import ErrorObject from './helpers/errorObject.js';
 import StorageServer from './models/storageServer.js';
@@ -10,6 +10,7 @@ export default class Socket {
 
   static init(server) {
     this.#io = new Server(server, {
+      path: `/${API_PATH}.io/`,
       cors: {
         origin: CORS_ORIGIN,
         methods: ['GET', 'POST'],
