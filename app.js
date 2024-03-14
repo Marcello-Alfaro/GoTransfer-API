@@ -27,7 +27,7 @@ try {
   console.log('Connection to database has been established successfully!');
   await sequelize.sync();
 
-  const server = app.listen(PORT ?? 3000, serverInit);
+  const server = app.listen(PORT, serverInit);
 
   Socket.init(server);
 

@@ -6,7 +6,7 @@ import Transfer from './models/transfer.js';
 
 export default () => {
   try {
-    console.log(`Server started on port ${PORT ?? 3000}`);
+    console.log(`Server started on port ${PORT} - Running Node.js version: ${process.version}`);
 
     const worker = new Worker(path.join(dirname, 'helpers', 'fileWatcher.js'));
 
