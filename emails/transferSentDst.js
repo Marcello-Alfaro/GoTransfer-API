@@ -41,9 +41,8 @@ class TransferSentDst extends Email {
           : ''
       }
       <p style="margin-top: 0; margin-bottom: 18px"></p>
-      ${
-        this.files.length > 1
-          ? `<a style="background: #228be6;
+
+      <a style="background: #228be6;
                       text-decoration: none;
                       padding: 10px 25px;
                       color: #fff;
@@ -51,39 +50,28 @@ class TransferSentDst extends Email {
                       display: inline-block;
                       mso-padding-alt: 0;
                       text-underline-color: #228be6;" 
-        href="${API_URL + API_PATH}/download/${jwt.sign(
-              { tid: this.transfer.transferId, dstid: this.to.userId },
-              JWT_SECRET,
-              {
-                expiresIn: `${TRANSFER_EXPIRE_TIME}d`,
-              }
-            )}" download><span style="mso-text-raise: 10pt; font-weight: bold"
-        >Download All</span
-      ></a
-    >`
-          : `<a style="background: #228be6;
-                      text-decoration: none;
-                      padding: 10px 25px;
-                      color: #fff;
-                      border-radius: 4px;
-                      display: inline-block;
-                      mso-padding-alt: 0;
-                      text-underline-color: #228be6;" 
-          href="${API_URL + API_PATH}/download/${jwt.sign(
-              {
-                tid: this.transfer.transferId,
-                dtyp: this.files.at(0)?.fileId ? 'b5ac9c2b' : '08ad027d',
-                ffid: this.files.at(0)?.fileId ?? this.files.at(0).folderId,
-                dstid: this.to.userId,
-              },
-              JWT_SECRET,
-              { expiresIn: `${TRANSFER_EXPIRE_TIME}d` }
-            )}" download><span style="mso-text-raise: 10pt; font-weight: bold"
-          >Download File</span
-        ></a
-      >`
-      }
-      </p>
+        href="${
+          this.files.length > 1
+            ? `${API_URL + API_PATH}/download/${jwt.sign(
+                { tid: this.transfer.transferId, dstid: this.to.userId },
+                JWT_SECRET,
+                {
+                  expiresIn: `${TRANSFER_EXPIRE_TIME}d`,
+                }
+              )}`
+            : `${API_URL + API_PATH}/download/${jwt.sign(
+                {
+                  tid: this.transfer.transferId,
+                  dtyp: this.files.at(0)?.fileId ? 'b5ac9c2b' : '08ad027d',
+                  ffid: this.files.at(0)?.fileId ?? this.files.at(0).folderId,
+                  dstid: this.to.userId,
+                },
+                JWT_SECRET,
+                { expiresIn: `${TRANSFER_EXPIRE_TIME}d` }
+              )}`
+        }" download><span style="mso-text-raise: 10pt; font-weight: bold"
+        >Download Now</span
+      ></a>
       `
     );
   }
