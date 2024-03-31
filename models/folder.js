@@ -12,7 +12,6 @@ Folder.init(
     },
     folderId: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
       unique: true,
       allowNull: false,
     },

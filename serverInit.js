@@ -1,28 +1,35 @@
+import './models/associations.js';
+import sequelize from './database/connection.js';
 import { PORT } from './config/config.js';
 import { Worker } from 'worker_threads';
 import dirname from './dirname.js';
 import path from 'path';
-import Transfer from './models/transfer.js';
+import StorageServer from './models/storageServer.js';
+import Socket from './socket.js';
 
-export default () => {
+export default new Promise(async (res, rej) => {
   try {
-    console.log(`Server started on port ${PORT} - Running Node.js version: ${process.version}`);
+    await sequelize.authenticate();
+    console.log('Connection to database has been established successfully!');
+    await sequelize.sync();
+
+    await StorageServer.disconnectAll();
 
     const worker = new Worker(path.join(dirname, 'helpers', 'fileWatcher.js'));
 
     worker.on('message', (data) => {
       try {
-        const { action, transferId, size, serverId, dskId, diskPath } = data;
-
-        if (action === 'remove-transfer')
-          Transfer.build({ transferId, size, serverId, dskId, diskPath }).reallocate();
+        const { serverSocket, action, diskPath, transferId } = data;
+        Socket.getServerSocket(serverSocket).emit(action, { diskPath, transferId });
       } catch (err) {
         throw err;
       }
     });
 
-    process.on('uncaughtException', (err) => console.error(err));
+    console.log(`Server started on port ${PORT} - Running Node.js version: ${process.version}\n`);
+
+    res();
   } catch (err) {
-    console.error(err);
+    rej(err);
   }
-};
+});

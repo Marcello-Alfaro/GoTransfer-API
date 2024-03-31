@@ -1,9 +1,9 @@
 import { Server } from 'socket.io';
-import { API_PATH, CORS_ORIGIN } from './config/config.js';
+import { API_PATH, ORIGIN_URL } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
 import ErrorObject from './helpers/errorObject.js';
 import StorageServer from './models/storageServer.js';
-import Transfer from './models/transfer.js';
+import Request from './helpers/request.js';
 
 export default class Socket {
   static #io;
@@ -12,7 +12,7 @@ export default class Socket {
     this.#io = new Server(server, {
       path: `${API_PATH}.io/`,
       cors: {
-        origin: CORS_ORIGIN,
+        origin: ORIGIN_URL,
         methods: ['GET', 'POST'],
       },
     });
@@ -21,7 +21,7 @@ export default class Socket {
       console.log('A client has connected!');
 
       socket.on('disconnect', (reason) => {
-        Transfer.findBySocket(socket.id)?.abort();
+        Request.clientAbort(socket.id);
         console.log(`Connection with client ${socket.id} lost due to ${reason}.`);
       });
     });
@@ -41,14 +41,24 @@ export default class Socket {
         }
       })
       .on('connection', (socket) => {
+        socket.on('remove-unfinished', async (serverId, res) => {
+          try {
+            await Request.serverAbortUnfinished(serverId, socket.id);
+            res();
+          } catch (err) {
+            throw err;
+          }
+        });
+
         socket.on('server-info', async (server) => {
-          await StorageServer.add({ ...server, socketId: socket.id });
+          await StorageServer.add(server);
 
           console.log(`Connection with ${server.name} server established!`);
         });
 
         socket.on('disconnect', async (reason) => {
           const server = await StorageServer.disconnect(socket.id);
+          Request.serverTagUnfinished(socket.id);
 
           console.log(`Connection with ${server.name} server lost due to ${reason}.`);
         });
@@ -60,18 +70,21 @@ export default class Socket {
     return this.#io;
   }
 
-  static toClient(socketId) {
+  static getClientSocket(socketId) {
     if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
-    return this.#io.of('/clients').to(socketId);
-  }
 
-  static toServer(socketId) {
-    if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
-    return this.#io.of('/storage-servers').to(socketId);
+    const clientSocket = this.#io.of('/clients').sockets.get(socketId);
+    if (!clientSocket) throw new ErrorObject(`Invalid socket id: ${socketId}`);
+
+    return clientSocket;
   }
 
   static getServerSocket(socketId) {
     if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
-    return this.#io.of('/storage-servers').sockets.get(socketId);
+
+    const serverSocket = this.#io.of('/storage-servers').sockets.get(socketId);
+    if (!serverSocket) throw new ErrorObject(`Invalid socket id: ${socketId}`);
+
+    return serverSocket;
   }
 }

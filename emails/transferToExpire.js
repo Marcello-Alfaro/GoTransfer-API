@@ -4,6 +4,7 @@ import {
   TRANSFER_EXPIRE_TIME,
   JWT_SECRET,
   MAX_FILES_EMAIL,
+  EMAIL_ICON_EXPIRE,
 } from '../config/config.js';
 import Email from './email.js';
 import jwt from 'jsonwebtoken';
@@ -11,7 +12,7 @@ import jwt from 'jsonwebtoken';
 export default class TransferToExpired extends Email {
   constructor(to, transfer) {
     super(to, transfer);
-    this.image = 'expire.png';
+    this.image = EMAIL_ICON_EXPIRE;
     this.subject = `"${transfer.title}" will expire in 1 day!`;
     this.buildEmail(
       `<h1 style="

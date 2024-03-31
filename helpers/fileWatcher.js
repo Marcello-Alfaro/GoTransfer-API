@@ -16,7 +16,7 @@ import StorageServer from '../models/storageServer.js';
   try {
     const transfersToExpire = await Transfer.findAll({
       where: { expire: { [Op.lt]: Date.now() + DAY_IN_MILISECONDS }, warned: false },
-      include: [User, File, Folder],
+      include: [{ model: User, required: true }, File, Folder],
     });
 
     if (transfersToExpire.length > 0) {
@@ -36,14 +36,19 @@ import StorageServer from '../models/storageServer.js';
       transfersToExpire.forEach(async (transfer) => {
         transfer.receivers.forEach(async (user) => {
           await new TransferToExpired(user, transfer).send();
-          await transfer.set({ warned: true }).save();
+          await transfer.update({ warned: true });
         });
       });
     }
 
     const expiredFiles = await Transfer.findAll({
       where: { expire: { [Op.lt]: Date.now() }, warned: true },
-      include: [User, File, Folder, { model: Disk, include: StorageServer }],
+      include: [
+        { model: User, required: true },
+        File,
+        Folder,
+        { model: Disk, include: { model: StorageServer, where: { online: true } }, required: true },
+      ],
     });
 
     if (expiredFiles.length > 0) {
@@ -61,21 +66,20 @@ import StorageServer from '../models/storageServer.js';
       );
 
       expiredFiles.forEach(async (transfer) => {
-        transfer.receivers.forEach(async (user) => {
-          if (transfer.User.email === user.email) return;
-          await new TransferExpired(user.email, transfer).send();
-        });
-
         parentPort.postMessage({
           action: 'remove-transfer',
           transferId: transfer.transferId,
-          size: transfer.size,
-          serverId: transfer.Disk.StorageServer.id,
-          dskId: transfer.Disk.id,
+          serverSocket: transfer.Disk.StorageServer.socketId,
           diskPath: transfer.Disk.path,
         });
-
         await transfer.destroy();
+        await Disk.reallocateSpace(transfer.Disk.id, transfer.size);
+
+        transfer.receivers.forEach(async (user) => {
+          if (transfer.User.id === user.id) return;
+          await new TransferExpired(user.email, transfer).send();
+        });
+
         await new TransferExpired(transfer.User.email, transfer).send();
       });
     }

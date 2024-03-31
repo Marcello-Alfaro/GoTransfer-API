@@ -1,4 +1,4 @@
-import { MAX_FILES_EMAIL } from '../config/config.js';
+import { EMAIL_ICON_EXPIRE, MAX_FILES_EMAIL } from '../config/config.js';
 import Email from './email.js';
 
 export default class TransferExpired extends Email {
@@ -6,7 +6,7 @@ export default class TransferExpired extends Email {
 
   constructor(to, transfer) {
     super(to, transfer);
-    this.image = 'expire.png';
+    this.image = EMAIL_ICON_EXPIRE;
     this.subject = `"${transfer.title}" expired!`;
     this.buildEmail(
       `<h1 style="

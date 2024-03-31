@@ -4,6 +4,7 @@ import {
   TRANSFER_EXPIRE_TIME,
   JWT_SECRET,
   MAX_FILES_EMAIL,
+  EMAIL_ICON_DOWNLOAD,
 } from '../config/config.js';
 import Email from './email.js';
 import jwt from 'jsonwebtoken';
@@ -11,7 +12,7 @@ import jwt from 'jsonwebtoken';
 class TransferSentDst extends Email {
   constructor(to, transfer) {
     super(to, transfer);
-    this.image = 'download.png';
+    this.image = EMAIL_ICON_DOWNLOAD;
     this.subject = `${this.transfer.sender} sent you "${this.transfer.title}"`;
     this.buildEmail(
       `<h1 style="

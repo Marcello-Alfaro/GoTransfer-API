@@ -1,9 +1,9 @@
 import {
-  API_URL,
-  API_PATH,
   FROM_EMAIL,
   TRANSFER_EXPIRE_TIME,
   SENDGRID_API_KEY,
+  ORIGIN_URL,
+  EMAIL_LOGO,
 } from '../config/config.js';
 import sgMail from '@sendgrid/mail';
 import ErrorObject from '../helpers/errorObject.js';
@@ -186,23 +186,24 @@ ol li:last-of-type {
                 >
                 <tr>
                     <td style="padding: 30px; background-color: #ffffff">
-                    <img
-                    src="${API_URL + API_PATH}/images/logo.png"
-                    width="250"
-                    alt="Logo"
-                    style="
-                      width: 250px;
-                      max-width: 80%;
-                      height: auto;
-                      border: none;
-                      border-radius: 9px;
-                      text-decoration: none;
-                      color: #ffffff;
-                      display: block;
-                      margin: 0 auto;
-                      margin-bottom: 25px;
-                    "
-                />
+                    <a href="${ORIGIN_URL}"
+                    ><img
+                      src="${EMAIL_LOGO}"
+                      width="250"
+                      alt="Logo"
+                      style="
+                        width: 250px;
+                        max-width: 80%;
+                        height: auto;
+                        border: none;
+                        border-radius: 9px;
+                        text-decoration: none;
+                        color: #ffffff;
+                        display: block;
+                        margin: 0 auto;
+                        margin-bottom: 25px;
+                      "
+                  /></a>
                 ${section1}
 
                 ${
@@ -274,7 +275,7 @@ ol li:last-of-type {
                     "
                   >
                     <img
-                      src="${API_URL + API_PATH}/images/${this.image}"
+                      src="${this.image}"
                       width="115"
                       alt="expire_icon"
                       style="width: 115px; max-width: 80%; margin-bottom: 20px"

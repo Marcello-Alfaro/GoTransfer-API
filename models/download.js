@@ -1,30 +1,9 @@
 import sequelize from '../database/connection.js';
-import { DataTypes, Model } from 'sequelize';
+import { Model, DataTypes } from 'sequelize';
 import UserTransfer from './userTransfer.js';
 import TransferDownloaded from '../emails/transferDownloaded.js';
-import ErrorObject from '../helpers/errorObject.js';
-import User from './user.js';
 
-class Download extends Model {
-  static #downloads = [];
-
-  add() {
-    Download.#downloads.push(this);
-    return this;
-  }
-
-  static remove(id) {
-    try {
-      const index = this.#downloads.findIndex((download) => download.downloadId === id);
-      if (index === -1)
-        throw new ErrorObject(`Download with id: ${id} was not found, could not remove.`);
-
-      return this.#downloads.splice(index, 1)[0];
-    } catch (err) {
-      throw err;
-    }
-  }
-}
+class Download extends Model {}
 
 Download.init(
   {
@@ -36,6 +15,7 @@ Download.init(
     downloadId: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
+      unique: true,
       allowNull: false,
     },
     downloadedAt: {
@@ -56,6 +36,13 @@ Download.init(
       references: {
         model: UserTransfer,
         key: 'transferId',
+      },
+    },
+    requestId: {
+      type: DataTypes.VIRTUAL,
+      unique: true,
+      set(_) {
+        this.setDataValue('requestId', this.getDataValue('downloadId'));
       },
     },
     mainHttpResponse: {

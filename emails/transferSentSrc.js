@@ -1,10 +1,10 @@
-import { MAX_FILES_EMAIL } from '../config/config.js';
+import { EMAIL_ICON_UPLOAD, MAX_FILES_EMAIL } from '../config/config.js';
 import Email from './email.js';
 
 class TransferSentSrc extends Email {
   constructor(to, transfer) {
     super(to, transfer);
-    this.image = 'upload.png';
+    this.image = EMAIL_ICON_UPLOAD;
     this.subject = `"${this.transfer.title}" was sent successfully to ${
       this.transfer.receivers.length > 1
         ? `${this.transfer.receivers.at(0)} and ${this.transfer.receivers.length - 1} more`

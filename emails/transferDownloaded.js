@@ -1,10 +1,10 @@
-import { MAX_FILES_EMAIL } from '../config/config.js';
+import { EMAIL_ICON_CHECK, MAX_FILES_EMAIL } from '../config/config.js';
 import Email from './email.js';
 
 class TransferDownloaded extends Email {
   constructor(download) {
     super(download.transfer.User.email, download.transfer);
-    this.image = 'check.png';
+    this.image = EMAIL_ICON_CHECK;
     this.subject = `${download.dstUser.email} downloaded "${this.transfer.title}".`;
     this.buildEmail(
       `<h1 style="

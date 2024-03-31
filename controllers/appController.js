@@ -13,11 +13,12 @@ import busboy from 'busboy';
 import TransferSentSrc from '../emails/transferSentSrc.js';
 import TransferSentDst from '../emails/transferSentDst.js';
 import Disk from '../models/disk.js';
+import Request from '../helpers/request.js';
 
 export default {
   async getTransferResult(req, res, next) {
     try {
-      const transfer = Transfer.remove(req.params.uploadId).formatFiles();
+      const transfer = Request.remove(req.params.transferId);
 
       const { dskId: diskId, sender, receivers, files, folders } = transfer;
 
@@ -77,9 +78,9 @@ export default {
             return await Transfer.findOne({
               where: { transferId },
               include: [
-                User,
+                { model: User, required: true },
                 { model: File, where: { fileId: ffid } },
-                { model: Disk, include: StorageServer },
+                { model: Disk, include: { model: StorageServer, required: true }, required: true },
               ],
             });
 
@@ -87,19 +88,23 @@ export default {
             return await Transfer.findOne({
               where: { transferId },
               include: [
-                User,
-                { model: Folder, where: { folderId: ffid }, include: File },
-                { model: Disk, include: StorageServer },
+                { model: User, required: true },
+                {
+                  model: Folder,
+                  where: { folderId: ffid },
+                  include: { model: File, required: true },
+                },
+                { model: Disk, include: { model: StorageServer, required: true }, required: true },
               ],
             });
 
           return await Transfer.findOne({
             where: { transferId },
             include: [
-              User,
-              File,
-              { model: Folder, include: File },
-              { model: Disk, include: StorageServer },
+              { model: User, required: true },
+              { model: File },
+              { model: Folder, include: { model: File, required: true } },
+              { model: Disk, include: { model: StorageServer, required: true }, required: true },
             ],
           });
         } catch (err) {
@@ -113,15 +118,21 @@ export default {
 
       if (!user) throw new ErrorObject(`User with id of ${dstid} not found!`, 404);
 
-      const { downloadId } = Download.build({
-        mainHttpResponse: res,
-        userId: user.id,
-        transferId: transfer.id,
-        dstUser: user,
-        transfer,
-      }).add();
+      const { downloadId } = Request.add(
+        Download.build({
+          requestId: null,
+          mainHttpResponse: res,
+          userId: user.id,
+          transferId: transfer.id,
+          dstUser: user,
+          transfer,
+        })
+      );
 
-      const { socketId } = StorageServer.find(transfer.Disk.StorageServer.id);
+      const { socketId } = await StorageServer.findOne({
+        where: { id: transfer.Disk.StorageServer.id, online: true },
+        attributes: ['socketId'],
+      });
 
       Socket.getServerSocket(socketId).emit('fetch-transfer', {
         type,
@@ -143,7 +154,7 @@ export default {
 
   async putRedirectMain(req, res, next) {
     try {
-      const download = Download.remove(req.headers.downloadid);
+      const download = Request.remove(req.headers.downloadid);
 
       await pipeline(req, download.mainHttpResponse);
       res.sendStatus(200);
@@ -156,7 +167,7 @@ export default {
   async getAllocateTransfer(req, res, next) {
     try {
       const { socketId } = req;
-      const { sender, receivers, title, message, size } = req.body;
+      const { sender, receivers, title, message, size, files, folders } = req.body;
 
       if (validator.isEmpty(sender) || !validator.isEmail(sender))
         throw new ErrorObject('Your email is required and must be a valid email.', 422);
@@ -167,7 +178,9 @@ export default {
       });
       if (size > MAX_FILE_SIZE) throw new ErrorObject('File is too big! Max file size is 4GB', 422);
 
-      const transferId = await Transfer.allocate(sender, receivers, title, message, size, socketId);
+      const { transferId } = Request.add(
+        await Transfer.allocate(sender, receivers, title, message, size, files, folders, socketId)
+      );
 
       res.status(200).json(transferId);
     } catch (err) {
@@ -177,31 +190,30 @@ export default {
 
   async putUploadHandler(req, res, next) {
     try {
-      const transfer = Transfer.find(req.params.uploadId);
+      const transfer = Request.find(req.params.transferId);
 
-      const { transferId, clientSocket, serverSocket, diskPath } = transfer;
+      const {
+        transferId,
+        clientSocket,
+        server: { socketId: serverSocket, Disks },
+      } = transfer;
+
       const { headers } = req;
 
       const bb = busboy({ headers });
 
-      bb.on('file', (path, file, info) => {
-        const { filename: name, mimeType: type, size = +headers['content-length'] } = info;
+      bb.on('file', (fileId, file) => {
+        transfer.nextFile = File.build({
+          fileId,
+          file,
+          clientSocket,
+        });
 
-        const fileId = transfer.pushFile(
-          File.build({
-            name,
-            size,
-            type,
-            path,
-            file,
-            clientSocket,
-          })
-        );
         req.fileId = fileId;
-        Socket.toServer(serverSocket).emit('handle-file', {
+        Socket.getServerSocket(serverSocket).emit('handle-file', {
           fileId,
           transferId,
-          diskPath,
+          diskPath: Disks[0].path,
         });
       });
 
@@ -217,12 +229,11 @@ export default {
     }
   },
 
-  getRedirectStorage(req, res, next) {
+  async getRedirectStorage(req, res, next) {
     try {
-      const { transferid, fileid } = req.headers;
-      const file = Transfer.findFile(transferid, fileid);
+      const { nextFile } = Request.find(req.headers.transferid);
 
-      file.triggerStream(res);
+      nextFile.triggerStream(res);
     } catch (err) {
       next(err);
     }

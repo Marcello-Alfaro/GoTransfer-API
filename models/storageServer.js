@@ -1,47 +1,17 @@
 import sequelize from '../database/connection.js';
 import { DataTypes, Model, Sequelize } from 'sequelize';
-import ErrorObject from '../helpers/errorObject.js';
-import Transfer from './transfer.js';
-import Disk from './disk.js';
 
 class StorageServer extends Model {
-  static #servers = [];
-
-  static getAll() {
-    return this.#servers;
-  }
-
-  static getAllActive() {
-    return this.#servers.filter((server) => server.online);
-  }
-
-  static async add({ serverId, name, arch, type, memory, cpu, cores, socketId, disks }) {
+  static async add({ serverId, socketId, name, arch, type, memory, cpu, cores, disks }) {
     try {
-      const server = await (async () => {
-        const [server, created] = await this.findOrCreate({
-          where: { serverId },
-          include: 'Disks',
-          defaults: { serverId, name, arch, type, memory, cpu, cores },
-        });
+      const server = await this.findOne({ where: { serverId }, include: 'Disks' });
 
-        if (!created)
-          return await server.update(
-            { name, arch, type, memory, cpu, cores, online: true },
+      !server
+        ? await this.create({ serverId, socketId, name, arch, type, memory, cpu, cores }, { disks })
+        : await server.update(
+            { socketId, online: true, name, arch, type, memory, cpu, cores },
             { disks }
           );
-
-        server.Disks = await Promise.all(disks.map(async (disk) => await server.createDisk(disk)));
-
-        return server;
-      })();
-
-      server.socketId = socketId;
-
-      const serverIndex = this.#servers.findIndex((entry) => entry.serverId === serverId);
-
-      serverIndex === -1 ? this.#servers.push(server) : (this.#servers[serverIndex] = server);
-
-      Transfer.removeUnfinishedTransfers(server);
     } catch (err) {
       throw err;
     }
@@ -49,13 +19,9 @@ class StorageServer extends Model {
 
   static async disconnect(socketId) {
     try {
-      const serverIndex = this.#servers.findIndex((entry) => entry.socketId === socketId);
-
-      const server = this.#servers[serverIndex];
+      const server = await this.findOne({ where: { socketId } });
 
       await server.update({ online: false, socketId: null, lastSeen: Date.now() });
-
-      Transfer.abortAll(server.id);
 
       return server;
     } catch (err) {
@@ -63,13 +29,12 @@ class StorageServer extends Model {
     }
   }
 
-  static find(serverId) {
+  static async disconnectAll() {
     try {
-      const server = this.#servers.find((server) => server.id === serverId);
-      if (!server?.online)
-        throw new ErrorObject(`Server with id: ${serverId} is not available of was not found!`);
-
-      return server;
+      const servers = await this.findAll();
+      await Promise.all(
+        servers.map(async (server) => await server.update({ socketId: null, online: false }))
+      );
     } catch (err) {
       throw err;
     }
@@ -87,6 +52,15 @@ StorageServer.init(
       type: DataTypes.UUID,
       allowNull: false,
       unique: true,
+    },
+    socketId: {
+      type: DataTypes.STRING,
+      unique: true,
+    },
+    online: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
     name: {
       type: DataTypes.STRING,
@@ -112,27 +86,23 @@ StorageServer.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    online: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
     lastSeen: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: Sequelize.NOW,
-    },
-    socketId: {
-      type: DataTypes.VIRTUAL,
     },
   },
   {
     sequelize,
     paranoid: true,
     hooks: {
-      async beforeUpdate(server, { disks }) {
+      async afterCreate(server, { disks }) {
         if (!disks) return;
-        server.Disks = await Promise.all(
+        await Promise.all(disks.map(async (disk) => await server.createDisk(disk)));
+      },
+      async afterUpdate(server, { disks }) {
+        if (!disks) return;
+        await Promise.all(
           disks.map(async (disk) => {
             const serverDisk = server.Disks.find((entry) => entry.diskId === disk.diskId);
             if (serverDisk) return await serverDisk.update(disk);
