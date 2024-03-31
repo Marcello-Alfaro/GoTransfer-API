@@ -229,7 +229,7 @@ export default {
     }
   },
 
-  async getRedirectStorage(req, res, next) {
+  getRedirectStorage(req, res, next) {
     try {
       const { nextFile } = Request.find(req.headers.transferid);
 
