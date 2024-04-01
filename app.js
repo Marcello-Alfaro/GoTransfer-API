@@ -19,6 +19,8 @@ try {
   app.use(errorHandler);
 
   const server = app.listen(PORT, await serverInit);
+  server.requestTimeout = 0;
+  server.setTimeout(15000, (socket) => socket.destroy());
 
   Socket.init(server);
 
