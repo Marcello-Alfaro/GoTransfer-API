@@ -24,6 +24,14 @@ try {
   server.setTimeout(15000, (socket) => socket.destroy());
 
   Socket.init(server);
+
+  process.on('uncaughtException', (err) => {
+    logger.fatal(err);
+    server.close(() => process.exit(1));
+
+    setTimeout(() => process.abort(), 1000).unref();
+    process.exit(1);
+  });
 } catch (err) {
   logger.error(err);
 }
