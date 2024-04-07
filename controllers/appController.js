@@ -203,25 +203,33 @@ export default {
       const bb = busboy({ headers });
 
       bb.on('file', (fileId, file) => {
-        transfer.nextFile = File.build({
-          fileId,
-          file,
-          clientSocket,
-        });
+        try {
+          transfer.nextFile = File.build({
+            fileId,
+            file,
+            clientSocket,
+          });
 
-        req.fileId = fileId;
-        Socket.getServerSocket(serverSocket).emit('handle-file', {
-          fileId,
-          transferId,
-          diskPath: Disks[0].path,
-        });
+          req.fileId = fileId;
+          Socket.getServerSocket(serverSocket).emit('handle-file', {
+            fileId,
+            transferId,
+            diskPath: Disks[0].path,
+          });
+        } catch (err) {
+          next(err);
+        }
       });
 
       await pipeline(req, bb);
 
-      await new Promise((res) =>
-        Socket.getServerSocket(serverSocket).once(req.fileId, (ack) => res(ack))
-      );
+      await new Promise((res, rej) => {
+        try {
+          Socket.getServerSocket(serverSocket).once(req.fileId, (ack) => res(ack));
+        } catch (err) {
+          throw rej(err);
+        }
+      });
 
       res.sendStatus(200);
     } catch (err) {

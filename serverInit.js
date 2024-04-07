@@ -6,11 +6,12 @@ import dirname from './dirname.js';
 import path from 'path';
 import StorageServer from './models/storageServer.js';
 import Socket from './socket.js';
+import logger from './helpers/logger.js';
 
 export default new Promise(async (res, rej) => {
   try {
     await sequelize.authenticate();
-    console.log('Connection to database has been established successfully!');
+    logger.info('Connection to database has been established successfully!');
     await sequelize.sync();
 
     await StorageServer.disconnectAll();
@@ -22,11 +23,11 @@ export default new Promise(async (res, rej) => {
         const { serverSocket, action, diskPath, transferId } = data;
         Socket.getServerSocket(serverSocket).emit(action, { diskPath, transferId });
       } catch (err) {
-        throw err;
+        logger.error(err);
       }
     });
 
-    console.log(`Server started on port ${PORT} - Running Node.js version: ${process.version}\n`);
+    logger.info(`Server started on port ${PORT} - Running Node.js version: ${process.version}`);
 
     res();
   } catch (err) {

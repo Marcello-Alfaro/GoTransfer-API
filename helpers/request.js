@@ -38,6 +38,9 @@ export default class Request {
       const index = this.#queue.findIndex(({ clientSocket }) => clientSocket === socketId);
       if (index === -1) return;
 
+      const { unfinished } = this.#queue[index];
+      if (unfinished) return;
+
       const {
         transferId,
         size,

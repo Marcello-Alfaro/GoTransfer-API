@@ -11,6 +11,7 @@ import TransferToExpired from '../emails/transferToExpire.js';
 import TransferExpired from '../emails/transferExpired.js';
 import Disk from '../models/disk.js';
 import StorageServer from '../models/storageServer.js';
+import logger from './logger.js';
 
 (async function fileWatcher() {
   try {
@@ -86,8 +87,6 @@ import StorageServer from '../models/storageServer.js';
 
     setTimeout(fileWatcher, FILE_WATCHER_INTERVAL);
   } catch (err) {
-    throw err;
+    logger.error(err);
   }
 })();
-
-process.on('uncaughtException', (err) => console.error(err));

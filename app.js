@@ -1,4 +1,5 @@
 import { API_PATH, PORT, CORS_OPTIONS } from './config/config.js';
+import logger from './helpers/logger.js';
 import express from 'express';
 import Socket from './socket.js';
 import appRoutes from './routes/appRoutes.js';
@@ -23,8 +24,6 @@ try {
   server.setTimeout(15000, (socket) => socket.destroy());
 
   Socket.init(server);
-
-  process.on('uncaughtException', (err) => console.error(err));
 } catch (err) {
-  console.error(err);
+  logger.error(err);
 }

@@ -2,13 +2,18 @@ import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database/connection.js';
 import Socket from '../socket.js';
 import { pipeline } from 'stream';
+import logger from '../helpers/logger.js';
 
 class File extends Model {
   triggerStream(res) {
-    pipeline(this.file, res, (err) => err && console.error(err));
-    this.file.on('data', (chunk) =>
-      Socket.getClientSocket(this.clientSocket).emit('bytes-received', chunk.length)
-    );
+    pipeline(this.file, res, (err) => err && logger.error(err));
+    this.file.on('data', (chunk) => {
+      try {
+        Socket.getClientSocket(this.clientSocket).emit('bytes-received', chunk.length);
+      } catch (err) {
+        logger.error(err);
+      }
+    });
   }
 }
 

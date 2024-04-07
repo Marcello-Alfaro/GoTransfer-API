@@ -1,6 +1,7 @@
 import { DB_DATABASE, DB_USER, DB_PASSWORD, DB_HOST, DB_DIALECT } from '../config/config.js';
 import mysql2 from 'mysql2/promise';
 import { Sequelize } from 'sequelize';
+import logger from '../helpers/logger.js';
 
 export default await (async () => {
   try {
@@ -16,6 +17,7 @@ export default await (async () => {
     return new Sequelize(DB_DATABASE, DB_USER, DB_PASSWORD, {
       host: DB_HOST,
       dialect: DB_DIALECT,
+      logging: (msg) => logger.info(msg),
     });
   } catch (err) {
     throw err;

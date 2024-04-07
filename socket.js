@@ -4,6 +4,7 @@ import jwtVerify from './helpers/jwtVerify.js';
 import ErrorObject from './helpers/errorObject.js';
 import StorageServer from './models/storageServer.js';
 import Request from './helpers/request.js';
+import logger from './helpers/logger.js';
 
 export default class Socket {
   static #io;
@@ -18,11 +19,15 @@ export default class Socket {
     });
 
     this.#io.of('/clients').on('connection', (socket) => {
-      console.log('A client has connected!');
+      logger.info('A client has connected!');
 
-      socket.on('disconnect', (reason) => {
-        Request.clientAbort(socket.id);
-        console.log(`Connection with client ${socket.id} lost due to ${reason}.`);
+      socket.on('disconnect', async (reason) => {
+        try {
+          await Request.clientAbort(socket.id);
+          logger.warn(`Connection with client ${socket.id} lost due to ${reason}.`);
+        } catch (err) {
+          logger.error(err);
+        }
       });
     });
 
@@ -46,45 +51,56 @@ export default class Socket {
             await Request.serverAbortUnfinished(serverId, socket.id);
             res();
           } catch (err) {
-            throw err;
+            logger.error(err);
           }
         });
 
         socket.on('server-info', async (server) => {
-          await StorageServer.add(server);
+          try {
+            await StorageServer.add(server);
 
-          console.log(`Connection with ${server.name} server established!`);
+            logger.info(`Connection with ${server.name} server established!`);
+          } catch (err) {
+            logger.error(err);
+          }
         });
 
         socket.on('disconnect', async (reason) => {
-          const server = await StorageServer.disconnect(socket.id);
-          Request.serverTagUnfinished(socket.id);
+          try {
+            const server = await StorageServer.disconnect(socket.id);
+            Request.serverTagUnfinished(socket.id);
 
-          console.log(`Connection with ${server.name} server lost due to ${reason}.`);
+            logger.warn(`Connection with ${server.name} server lost due to ${reason}.`);
+          } catch (err) {
+            logger.error(err);
+          }
         });
       });
   }
 
-  static getIO() {
-    if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
-    return this.#io;
-  }
-
   static getClientSocket(socketId) {
-    if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
+    try {
+      if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
 
-    const clientSocket = this.#io.of('/clients').sockets.get(socketId);
-    if (!clientSocket) throw new ErrorObject(`Invalid socket id: ${socketId}`);
+      const clientSocket = this.#io.of('/clients').sockets.get(socketId);
+      if (!clientSocket) throw new ErrorObject(`Invalid socket id: ${socketId}`);
 
-    return clientSocket;
+      return clientSocket;
+    } catch (err) {
+      throw err;
+    }
   }
 
   static getServerSocket(socketId) {
-    if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
+    try {
+      if (!this.#io) throw new ErrorObject('Socket.io not initialized!');
 
-    const serverSocket = this.#io.of('/storage-servers').sockets.get(socketId);
-    if (!serverSocket) throw new ErrorObject(`Invalid socket id: ${socketId}`);
+      const serverSocket = this.#io.of('/storage-servers').sockets.get(socketId);
+      if (!serverSocket) throw new ErrorObject(`Invalid socket id: ${socketId}`);
 
-    return serverSocket;
+      return serverSocket;
+    } catch (err) {
+      throw err;
+    }
   }
 }
