@@ -9,7 +9,7 @@ class File extends Model {
     pipeline(this.file, res, (err) => err && logger.error(err));
     this.file.on('data', (chunk) => {
       try {
-        Socket.getClientSocket(this.clientSocket).emit('bytes-received', chunk.length);
+        Socket.send(this.clientSocket, { action: 'bytes-received', bytes: chunk.length });
       } catch (err) {
         logger.error(err);
       }

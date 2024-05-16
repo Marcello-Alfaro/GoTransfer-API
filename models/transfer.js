@@ -48,13 +48,11 @@ class Transfer extends Model {
         folders,
       });
 
-      const { ok } = await Socket.getServerSocket(server.socketId).emitWithAck(
-        'allocate-transfer',
-        {
-          diskPath: server.Disks[0].path,
-          transferId: transfer.transferId,
-        }
-      );
+      const { ok } = await Socket.sendWithAck(server.serverId, {
+        action: 'allocate-transfer',
+        diskPath: server.Disks[0].path,
+        transferId: transfer.transferId,
+      });
 
       if (!ok) throw new ErrorObject(`Could not allocate transfer in server ${server.name}`);
 

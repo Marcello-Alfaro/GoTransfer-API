@@ -80,7 +80,11 @@ export default {
               include: [
                 { model: User, required: true },
                 { model: File, where: { fileId: ffid } },
-                { model: Disk, include: { model: StorageServer, required: true }, required: true },
+                {
+                  model: Disk,
+                  include: { model: StorageServer, where: { online: true } },
+                  required: true,
+                },
               ],
             });
 
@@ -94,7 +98,11 @@ export default {
                   where: { folderId: ffid },
                   include: { model: File, required: true },
                 },
-                { model: Disk, include: { model: StorageServer, required: true }, required: true },
+                {
+                  model: Disk,
+                  include: { model: StorageServer, where: { online: true } },
+                  required: true,
+                },
               ],
             });
 
@@ -104,7 +112,11 @@ export default {
               { model: User, required: true },
               { model: File },
               { model: Folder, include: { model: File, required: true } },
-              { model: Disk, include: { model: StorageServer, required: true }, required: true },
+              {
+                model: Disk,
+                include: { model: StorageServer, where: { online: true } },
+                required: true,
+              },
             ],
           });
         } catch (err) {
@@ -112,11 +124,12 @@ export default {
         }
       })();
 
-      if (!transfer) throw new ErrorObject('Transfer expired or invalid!', 404);
+      if (!transfer)
+        throw new ErrorObject('Transfer expired, invalid or service unavailable!', 503);
 
       const user = await User.findOne({ where: { userId: dstid } });
 
-      if (!user) throw new ErrorObject(`User with id of ${dstid} not found!`, 404);
+      if (!user) throw new ErrorObject(`User with id of ${dstid} not found!`);
 
       const { downloadId } = Request.add(
         Download.build({
@@ -129,12 +142,8 @@ export default {
         })
       );
 
-      const { socketId } = await StorageServer.findOne({
-        where: { id: transfer.Disk.StorageServer.id, online: true },
-        attributes: ['socketId'],
-      });
-
-      Socket.getServerSocket(socketId).emit('fetch-transfer', {
+      Socket.send(transfer.Disk.StorageServer.serverId, {
+        action: 'fetch-transfer',
         type,
         downloadId,
         transfer,
@@ -192,11 +201,7 @@ export default {
     try {
       const transfer = Request.find(req.params.transferId);
 
-      const {
-        transferId,
-        clientSocket,
-        server: { socketId: serverSocket, Disks },
-      } = transfer;
+      const { transferId, clientSocket, server } = transfer;
 
       const { headers } = req;
 
@@ -210,11 +215,11 @@ export default {
             clientSocket,
           });
 
-          req.fileId = fileId;
-          Socket.getServerSocket(serverSocket).emit('handle-file', {
+          req.messageId = Socket.send(server.serverId, {
+            action: 'handle-file',
             fileId,
             transferId,
-            diskPath: Disks[0].path,
+            diskPath: server.Disks[0].path,
           });
         } catch (err) {
           next(err);
@@ -223,13 +228,7 @@ export default {
 
       await pipeline(req, bb);
 
-      await new Promise((res, rej) => {
-        try {
-          Socket.getServerSocket(serverSocket).once(req.fileId, (ack) => res(ack));
-        } catch (err) {
-          throw rej(err);
-        }
-      });
+      await Socket.ack(req.messageId);
 
       res.sendStatus(200);
     } catch (err) {

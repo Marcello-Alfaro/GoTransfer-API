@@ -1,7 +1,6 @@
 import { API_PATH, PORT, CORS_OPTIONS } from './config/config.js';
 import logger from './helpers/logger.js';
 import express from 'express';
-import Socket from './socket.js';
 import appRoutes from './routes/appRoutes.js';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -22,8 +21,6 @@ try {
   const server = app.listen(PORT, await serverInit);
   server.requestTimeout = 0;
   server.setTimeout(120000, (socket) => socket.destroy());
-
-  Socket.init(server);
 
   process.on('uncaughtException', (err) => {
     logger.fatal(err);

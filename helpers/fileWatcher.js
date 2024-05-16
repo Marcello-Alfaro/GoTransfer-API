@@ -70,7 +70,7 @@ import logger from './logger.js';
         parentPort.postMessage({
           action: 'remove-transfer',
           transferId: transfer.transferId,
-          serverSocket: transfer.Disk.StorageServer.socketId,
+          serverId: transfer.Disk.StorageServer.serverId,
           diskPath: transfer.Disk.path,
         });
         await transfer.destroy();

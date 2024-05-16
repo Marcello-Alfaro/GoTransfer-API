@@ -16,12 +16,15 @@ export default new Promise(async (res, rej) => {
 
     await StorageServer.disconnectAll();
 
+    Socket.init();
+
     const worker = new Worker(path.join(dirname, 'helpers', 'fileWatcher.js'));
 
     worker.on('message', (data) => {
       try {
-        const { serverSocket, action, diskPath, transferId } = data;
-        Socket.getServerSocket(serverSocket).emit(action, { diskPath, transferId });
+        const { serverId, action, diskPath, transferId } = data;
+
+        Socket.send(serverId, { action, diskPath, transferId });
       } catch (err) {
         logger.error(err);
       }

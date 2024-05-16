@@ -41,52 +41,44 @@ export default class Request {
       const { unfinished } = this.#queue[index];
       if (unfinished) return;
 
-      const {
-        transferId,
-        size,
-        server: { socketId: serverSocket, Disks },
-      } = this.#queue.splice(index, 1)[0];
+      const { size, server } = this.#queue.splice(index, 1)[0];
 
-      Socket.getServerSocket(serverSocket).emit('remove-transfer', {
-        diskPath: Disks[0].path,
-        transferId,
-      });
-
-      await Disk.reallocateSpace(Disks[0].id, size);
+      await Disk.reallocateSpace(server.Disks[0].id, size);
     } catch (err) {
       throw err;
     }
   }
 
-  static serverTagUnfinished(socketId) {
+  static serverTagUnfinished(id) {
     this.#queue.forEach((request) => {
-      if (request.server.socketId !== socketId) return;
+      if (request.server.serverId !== id) return;
       request.unfinished = true;
     });
   }
 
-  static serverAbortUnfinished(id, serverSocket) {
+  static serverAbortUnfinished(id) {
     return new Promise(async (res, rej) => {
       try {
         let index;
+        let removed = 0;
 
         while (index !== -1) {
           index = this.#queue.findIndex(
             (request) => request.server.serverId === id && request.unfinished
           );
-          if (index === -1) return res();
+          if (index === -1) return res(removed);
 
-          const {
-            transferId,
-            server: { Disks },
-          } = this.#queue.splice(index, 1)[0];
+          const { transferId, server } = this.#queue.splice(index, 1)[0];
 
-          const { ok } = await Socket.getServerSocket(serverSocket).emitWithAck('remove-transfer', {
-            diskPath: Disks[0].path,
+          const { ok } = await Socket.sendWithAck(server.serverId, {
+            action: 'remove-transfer',
+            diskPath: server.Disks[0].path,
             transferId,
           });
 
           if (!ok) throw new ErrorObject(`Could not remove unfinished transfer ${transferId}`);
+
+          removed++;
         }
       } catch (err) {
         rej(err);

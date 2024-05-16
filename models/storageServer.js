@@ -2,26 +2,23 @@ import sequelize from '../database/connection.js';
 import { DataTypes, Model, Sequelize } from 'sequelize';
 
 class StorageServer extends Model {
-  static async add({ serverId, socketId, name, arch, type, memory, cpu, cores, disks }) {
+  static async add({ id: serverId, name, arch, type, memory, cpu, cores, disks }) {
     try {
       const server = await this.findOne({ where: { serverId }, include: 'Disks' });
 
       !server
-        ? await this.create({ serverId, socketId, name, arch, type, memory, cpu, cores }, { disks })
-        : await server.update(
-            { socketId, online: true, name, arch, type, memory, cpu, cores },
-            { disks }
-          );
+        ? await this.create({ serverId, name, arch, type, memory, cpu, cores }, { disks })
+        : await server.update({ online: true, name, arch, type, memory, cpu, cores }, { disks });
     } catch (err) {
       throw err;
     }
   }
 
-  static async disconnect(socketId) {
+  static async disconnect(serverId) {
     try {
-      const server = await this.findOne({ where: { socketId } });
+      const server = await this.findOne({ where: { serverId } });
 
-      await server.update({ online: false, socketId: null, lastSeen: Date.now() });
+      await server.update({ online: false, lastSeen: Date.now() });
 
       return server;
     } catch (err) {
@@ -32,9 +29,7 @@ class StorageServer extends Model {
   static async disconnectAll() {
     try {
       const servers = await this.findAll();
-      await Promise.all(
-        servers.map(async (server) => await server.update({ socketId: null, online: false }))
-      );
+      await Promise.all(servers.map(async (server) => await server.update({ online: false })));
     } catch (err) {
       throw err;
     }
@@ -51,10 +46,6 @@ StorageServer.init(
     serverId: {
       type: DataTypes.UUID,
       allowNull: false,
-      unique: true,
-    },
-    socketId: {
-      type: DataTypes.STRING,
       unique: true,
     },
     online: {
