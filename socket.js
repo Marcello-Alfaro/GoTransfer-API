@@ -1,7 +1,7 @@
 import uWS from 'uWebSockets.js';
 import EventEmitter from 'events';
 import { randomUUID } from 'crypto';
-import { API_PATH, WS_PORT } from './config/config.js';
+import { API_PATH, WS_PORT, WS_IDLE_TIMEOUT } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
 import ErrorObject from './helpers/errorObject.js';
 import StorageServer from './models/storageServer.js';
@@ -22,6 +22,7 @@ export default class Socket {
           : logger.error('Failed to start server')
       )
       .ws(`${API_PATH}.uws`, {
+        idleTimeout: WS_IDLE_TIMEOUT,
         open: (socket) => {
           socket.id = randomUUID();
           socket.type = 'client';
@@ -48,6 +49,7 @@ export default class Socket {
         },
       })
       .ws(`${API_PATH}.uws/storage-servers`, {
+        idleTimeout: WS_IDLE_TIMEOUT,
         upgrade: async (res, req, context) => {
           try {
             const token = req.getHeader('authorization').split(' ')[1];
