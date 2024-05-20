@@ -30,7 +30,7 @@ export default new Promise(async (res, rej) => {
       }
     });
 
-    logger.info(`Server started on port ${PORT} - Running Node.js version: ${process.version}`);
+    logger.info(`Server started on port ${PORT} - Running Node.js version ${process.version}`);
 
     res();
   } catch (err) {

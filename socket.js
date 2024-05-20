@@ -21,7 +21,7 @@ export default class Socket {
           ? logger.info(`uWebSockets Server started on port ${WS_PORT}`)
           : logger.error('Failed to start server')
       )
-      .ws(`${API_PATH}.uws`, {
+      .ws(`${API_PATH}.uws/clients`, {
         idleTimeout: WS_IDLE_TIMEOUT,
         open: (socket) => {
           socket.id = randomUUID();
