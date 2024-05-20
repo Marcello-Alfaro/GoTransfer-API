@@ -1,7 +1,7 @@
 import uWS from 'uWebSockets.js';
 import EventEmitter from 'events';
 import { randomUUID } from 'crypto';
-import { API_PATH, WS_PORT, WS_IDLE_TIMEOUT } from './config/config.js';
+import { ORIGIN_URL, API_PATH, WS_PORT, WS_IDLE_TIMEOUT } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
 import ErrorObject from './helpers/errorObject.js';
 import StorageServer from './models/storageServer.js';
@@ -23,16 +23,29 @@ export default class Socket {
       )
       .ws(`${API_PATH}.uws/clients`, {
         idleTimeout: WS_IDLE_TIMEOUT,
-        open: (socket) => {
-          socket.id = randomUUID();
-          socket.type = 'client';
+        upgrade: (res, req, context) => {
+          try {
+            if (req.getHeader('origin') !== ORIGIN_URL)
+              throw new ErrorObject('Invalid origin header');
+
+            res.upgrade(
+              { id: randomUUID(), type: 'client' },
+              req.getHeader('sec-websocket-key'),
+              req.getHeader('sec-websocket-protocol'),
+              req.getHeader('sec-websocket-extensions'),
+              context
+            );
+          } catch (err) {
+            res.close();
+            logger.error(err);
+          }
         },
+        open: (socket) => this.#sockets.set(socket.id, socket),
         message: async (socket, message) => {
           const data = this.#decodeJSON(message);
           const { action } = data;
 
           if (action === 'add-client') {
-            this.#sockets.set(socket.id, socket);
             socket.send(JSON.stringify({ action: 'socket-info', id: socket.id }));
 
             logger.info(`Client ${socket.id} has connected.`);
