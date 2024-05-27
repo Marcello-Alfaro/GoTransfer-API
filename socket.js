@@ -92,6 +92,10 @@ export default class Socket {
               )} unfinished transfers from ${socket.name} server.`
             );
 
+            const { server } = await this.sendWithAck(socket.id, { action: 'fetch-server-info' });
+
+            await StorageServer.add(server);
+
             socket.send(
               JSON.stringify({
                 action: 'main-server-response',
@@ -99,32 +103,23 @@ export default class Socket {
                 response: { ok: true, status: 200 },
               })
             );
+
+            logger.info(`Connection with ${server.name} server established!`);
           } catch (err) {
+            socket.send(
+              JSON.stringify({
+                action: 'main-server-response',
+                messageId: socket.id,
+                response: { ok: false, status: 500, err },
+              })
+            );
             logger.error(err);
           }
         },
 
-        message: async (socket, message) => {
+        message: async (_, message) => {
           const data = this.#decodeJSON(message);
           const { action } = data;
-
-          if (action === 'fetch-server-info') {
-            try {
-              await StorageServer.add(data.server);
-
-              socket.send(
-                JSON.stringify({
-                  action: 'main-server-response',
-                  messageId: data.messageId,
-                  response: { ok: true, status: 200 },
-                })
-              );
-
-              logger.info(`Connection with ${data.server.name} server established!`);
-            } catch (err) {
-              logger.error(err);
-            }
-          }
 
           if (action === 'server-response') {
             const { messageId, response } = data;
@@ -134,9 +129,9 @@ export default class Socket {
 
         close: async (socket, code) => {
           try {
-            const server = await StorageServer.disconnect(socket.id);
-            Request.serverTagUnfinished(socket.id);
             this.#sockets.delete(socket.id);
+            Request.serverTagUnfinished(socket.id);
+            const server = await StorageServer.disconnect(socket.id);
 
             logger.warn(`Connection with ${server.name} server lost due to ${code}.`);
           } catch (err) {
@@ -157,7 +152,7 @@ export default class Socket {
   static send(id, message) {
     try {
       const socket = this.#sockets.get(id);
-      if (!socket) throw new ErrorObject('Server socket not found!');
+      if (!socket) throw new ErrorObject(`Socket ${socket.id} not found!`);
 
       const messageId = randomUUID();
       socket.send(JSON.stringify({ messageId, ...message }));
