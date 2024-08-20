@@ -301,7 +301,7 @@ ol li:last-of-type {
                   </tr>
                   <td style="padding: 30px; background-color: #ffffff">
                     <p style="margin: 0; font-style: italic;">
-                      Note: All uploads will have an expiration time of ${TRANSFER_EXPIRE_TIME} days. Once the time expires, the file(s) will be automatically removed. 
+                      Note: All transfers have an expiration of ${TRANSFER_EXPIRE_TIME} days. Once the time expires, the transfer and its file(s) will be removed. 
                     </p>
                   </td>
                 <tr>

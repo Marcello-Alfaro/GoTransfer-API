@@ -14,6 +14,7 @@ export default class Socket {
   static #decoder = new TextDecoder('utf-8');
 
   static init() {
+    /* setInterval(() => console.log(this.#sockets), 2000); */
     uWS
       .App()
       .listen(+WS_PORT, (token) =>
@@ -26,10 +27,10 @@ export default class Socket {
         upgrade: (res, req, context) => {
           try {
             if (req.getHeader('origin') !== ORIGIN_URL)
-              throw new ErrorObject('Invalid origin header');
+              throw new ErrorObject('Invalid origin header!');
 
             res.upgrade(
-              { id: randomUUID(), type: 'client' },
+              { id: randomUUID(), type: 'client', requestId: null },
               req.getHeader('sec-websocket-key'),
               req.getHeader('sec-websocket-protocol'),
               req.getHeader('sec-websocket-extensions'),
@@ -40,16 +41,10 @@ export default class Socket {
             logger.error(err);
           }
         },
-        open: (socket) => this.#sockets.set(socket.id, socket),
-        message: async (socket, message) => {
-          const data = this.#decodeJSON(message);
-          const { action } = data;
-
-          if (action === 'add-client') {
-            socket.send(JSON.stringify({ action: 'socket-info', id: socket.id }));
-
-            logger.info(`Client ${socket.id} has connected.`);
-          }
+        open: (socket) => {
+          this.#sockets.set(socket.id, socket);
+          socket.send(JSON.stringify({ action: 'socket-info', id: socket.id }));
+          logger.info(`A client has connected. ID: ${socket.id}`);
         },
         close: async (socket, code) => {
           try {
@@ -82,7 +77,6 @@ export default class Socket {
             logger.error(err);
           }
         },
-
         open: async (socket) => {
           try {
             this.#sockets.set(socket.id, socket);
@@ -116,7 +110,6 @@ export default class Socket {
             logger.error(err);
           }
         },
-
         message: async (_, message) => {
           const data = this.#decodeJSON(message);
           const { action } = data;
@@ -126,7 +119,6 @@ export default class Socket {
             this.#eventEmitter.emit(messageId, response);
           }
         },
-
         close: async (socket, code) => {
           try {
             this.#sockets.delete(socket.id);
@@ -152,7 +144,7 @@ export default class Socket {
   static send(id, message) {
     try {
       const socket = this.#sockets.get(id);
-      if (!socket) throw new ErrorObject(`Socket ${socket.id} not found!`);
+      if (!socket) throw new ErrorObject(`Socket ${id} was not found!`);
 
       const messageId = randomUUID();
       socket.send(JSON.stringify({ messageId, ...message }));
@@ -181,5 +173,9 @@ export default class Socket {
     } catch (err) {
       throw err;
     }
+  }
+
+  static find(socketId) {
+    return this.#sockets.get(socketId);
   }
 }

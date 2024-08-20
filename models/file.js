@@ -11,6 +11,7 @@ class File extends Model {
       try {
         Socket.send(this.clientSocket, { action: 'bytes-received', bytes: chunk.length });
       } catch (err) {
+        res.end();
         logger.error(err);
       }
     });

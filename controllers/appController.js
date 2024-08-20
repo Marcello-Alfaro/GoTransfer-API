@@ -131,7 +131,7 @@ export default {
 
       if (!user) throw new ErrorObject(`User with id of ${dstid} not found!`);
 
-      const { downloadId } = Request.add(
+      const downloadId = Request.add(
         Download.build({
           requestId: null,
           mainHttpResponse: res,
@@ -163,6 +163,7 @@ export default {
 
   async putRedirectMain(req, res, next) {
     try {
+      console.log(req.headers.downloadid);
       const download = Request.remove(req.headers.downloadid);
 
       await pipeline(req, download.mainHttpResponse);
@@ -187,11 +188,12 @@ export default {
       });
       if (size > MAX_FILE_SIZE) throw new ErrorObject('File is too big! Max file size is 4GB', 422);
 
-      const { transferId } = Request.add(
+      const requestId = Request.add(
         await Transfer.allocate(sender, receivers, title, message, size, files, folders, socketId)
       );
+      Socket.find(socketId).requestId = requestId;
 
-      res.status(200).json(transferId);
+      res.status(200).json(requestId);
     } catch (err) {
       next(err);
     }

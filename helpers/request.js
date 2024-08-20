@@ -3,16 +3,16 @@ import Socket from '../socket.js';
 import ErrorObject from './errorObject.js';
 
 export default class Request {
-  static #queue = [];
+  static #queue = new Map();
 
   static add(request) {
-    this.#queue.push(request);
-    return request;
+    this.#queue.set(request.requestId, request);
+    return request.requestId;
   }
 
   static find(id) {
     try {
-      const request = this.#queue.find(({ requestId }) => requestId === id);
+      const request = this.#queue.get(id);
       if (!request) throw new ErrorObject(`Request ${id} not found!`);
 
       return request;
@@ -23,25 +23,29 @@ export default class Request {
 
   static remove(id) {
     try {
-      const index = this.#queue.findIndex(({ requestId }) => requestId === id);
-      if (index === -1)
+      const request = this.#queue.get(id);
+      if (!request)
         throw new ErrorObject(`Request with id: ${id} was not found, could not remove.`);
 
-      return this.#queue.splice(index, 1)[0];
+      this.#queue.delete(id);
+
+      return request;
     } catch (err) {
       throw err;
     }
   }
 
-  static async clientAbort(socketId) {
+  static async clientAbort(id) {
     try {
-      const index = this.#queue.findIndex(({ clientSocket }) => clientSocket === socketId);
-      if (index === -1) return;
+      const request = this.#queue.get(id);
+      if (!request) return;
 
-      const { unfinished } = this.#queue[index];
+      const { unfinished } = request;
       if (unfinished) return;
 
-      const { size, server } = this.#queue.splice(index, 1)[0];
+      const { size, server } = request;
+
+      this.#queue.delete(id);
 
       await Disk.reallocateSpace(server.Disks[0].id, size);
     } catch (err) {
@@ -49,37 +53,36 @@ export default class Request {
     }
   }
 
-  static serverTagUnfinished(id) {
-    this.#queue.forEach((request) => {
-      if (request.server.serverId !== id) return;
+  static serverTagUnfinished(serverId) {
+    for (const [_, request] of this.#queue) {
+      if (request.server.serverId !== serverId) return;
       request.unfinished = true;
-    });
+    }
   }
 
-  static serverAbortUnfinished(id) {
+  static serverAbortUnfinished(serverId) {
     return new Promise(async (res, rej) => {
       try {
-        let index;
         let removed = 0;
 
-        while (index !== -1) {
-          index = this.#queue.findIndex(
-            (request) => request.server.serverId === id && request.unfinished
-          );
-          if (index === -1) return res(removed);
+        for (const [key, request] of this.#queue) {
+          if (request.server.serverId === serverId && request.unfinished) {
+            const { transferId, server } = request;
 
-          const { transferId, server } = this.#queue.splice(index, 1)[0];
+            const { ok } = await Socket.sendWithAck(server.serverId, {
+              action: 'remove-transfer',
+              diskPath: server.Disks[0].path,
+              transferId,
+            });
 
-          const { ok } = await Socket.sendWithAck(server.serverId, {
-            action: 'remove-transfer',
-            diskPath: server.Disks[0].path,
-            transferId,
-          });
+            if (!ok) throw new ErrorObject(`Could not remove unfinished transfer ${transferId}`);
 
-          if (!ok) throw new ErrorObject(`Could not remove unfinished transfer ${transferId}`);
-
-          removed++;
+            this.#queue.delete(key);
+            removed++;
+          }
         }
+
+        res(removed);
       } catch (err) {
         rej(err);
       }
