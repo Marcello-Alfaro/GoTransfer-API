@@ -14,7 +14,6 @@ export default class Socket {
   static #decoder = new TextDecoder('utf-8');
 
   static init() {
-    /* setInterval(() => console.log(this.#sockets), 2000); */
     uWS
       .App()
       .listen(+WS_PORT, (token) =>
