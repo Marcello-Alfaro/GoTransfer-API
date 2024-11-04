@@ -6,14 +6,14 @@
   "type": "module",
   "scripts": {
     "start": "node app.js",
-    "start:dev": "nodemon -r dotenv/config app.js"
+    "start:dev": "node --watch --env-file=.env app.js"
   },
   "author": "Marcello",
   "license": "ISC",
   "dependencies": {
     "@sendgrid/mail": "^8.1.4",
     "busboy": "^1.6.0",
-    "compression": "^1.7.4",
+    "compression": "^1.7.5",
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "helmet": "^8.0.0",
@@ -24,9 +24,5 @@
     "sequelize": "^6.37.5",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.48.0",
     "validator": "^13.12.0"
-  },
-  "devDependencies": {
-    "dotenv": "^16.4.5",
-    "nodemon": "^3.1.7"
   }
 }
