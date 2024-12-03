@@ -18,11 +18,11 @@
     "express": "^4.21.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.11.4",
+    "mysql2": "^3.11.5",
     "pino": "^9.5.0",
     "pino-pretty": "^13.0.0",
     "sequelize": "^6.37.5",
-    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.48.0",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.51.0",
     "validator": "^13.12.0"
   }
 }
