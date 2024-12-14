@@ -38,54 +38,21 @@ export default class Request {
   static async clientAbort(id) {
     try {
       const request = this.#queue.get(id);
-      if (!request) return;
-
-      const { unfinished } = request;
-      if (unfinished) return;
-
-      const { size, server } = request;
-
+      if (!request) throw new ErrorObject(`Could not abort. Request ${id} was not found.`);
       this.#queue.delete(id);
+
+      const { transferId, size, server } = request;
+
+      Socket.send(server.serverId, {
+        action: 'remove-transfer',
+        diskPath: server.Disks[0].path,
+        transferId,
+        aborted: true,
+      });
 
       await Disk.reallocateSpace(server.Disks[0].id, size);
     } catch (err) {
       throw err;
     }
-  }
-
-  static serverTagUnfinished(serverId) {
-    for (const [_, request] of this.#queue) {
-      if (request.server.serverId !== serverId) return;
-      request.unfinished = true;
-    }
-  }
-
-  static serverAbortUnfinished(serverId) {
-    return new Promise(async (res, rej) => {
-      try {
-        let removed = 0;
-
-        for (const [key, request] of this.#queue) {
-          if (request.server.serverId === serverId && request.unfinished) {
-            const { transferId, server } = request;
-
-            const { ok } = await Socket.sendWithAck(server.serverId, {
-              action: 'remove-transfer',
-              diskPath: server.Disks[0].path,
-              transferId,
-            });
-
-            if (!ok) throw new ErrorObject(`Could not remove unfinished transfer ${transferId}`);
-
-            this.#queue.delete(key);
-            removed++;
-          }
-        }
-
-        res(removed);
-      } catch (err) {
-        rej(err);
-      }
-    });
   }
 }

@@ -7,7 +7,7 @@ import Socket from '../socket.js';
 import Disk from './disk.js';
 
 class Transfer extends Model {
-  static async allocate(sender, receivers, title, message, size, files, folders, clientSocket) {
+  static async allocate(sender, receivers, title, message, size, files, folders) {
     try {
       const server = await StorageServer.findAll({
         where: { online: true },
@@ -39,7 +39,6 @@ class Transfer extends Model {
         message,
         size,
         requestId: null,
-        clientSocket,
         server,
         dskId: server.Disks[0].id,
         sender,
@@ -54,7 +53,7 @@ class Transfer extends Model {
         transferId: transfer.transferId,
       });
 
-      if (!ok) throw new ErrorObject(`Could not allocate transfer in server ${server.name}`);
+      if (!ok) throw new ErrorObject(`Could not allocate transfer in server ${server.name}.`);
 
       return transfer;
     } catch (err) {
@@ -102,9 +101,6 @@ Transfer.init(
       set(_) {
         this.setDataValue('requestId', this.getDataValue('transferId'));
       },
-    },
-    clientSocket: {
-      type: DataTypes.VIRTUAL,
     },
     unfinished: {
       type: DataTypes.VIRTUAL,

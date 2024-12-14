@@ -1,11 +1,12 @@
 export const {
+  NODE_ENV,
   PORT,
   WS_PORT,
   WS_IDLE_TIMEOUT,
   FILE_WATCHER_INTERVAL,
   TRANSFER_EXPIRE_TIME,
   LOGS_DESTINATION,
-  MAX_FILE_SIZE,
+  MAX_TRANSFER_SIZE,
   MAX_FILES_EMAIL,
   JWT_SECRET,
   SENDGRID_API_KEY,
@@ -33,5 +34,5 @@ export const DAY_IN_MILISECONDS = 86400000;
 export const CORS_OPTIONS = {
   origin: ORIGIN_URL,
   methods: ['GET', 'POST', 'PUT'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'socketId'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };

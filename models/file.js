@@ -5,11 +5,11 @@ import { pipeline } from 'stream';
 import logger from '../helpers/logger.js';
 
 class File extends Model {
-  triggerStream(res) {
+  triggerStream(res, transferId) {
     pipeline(this.file, res, (err) => err && logger.error(err));
     this.file.on('data', (chunk) => {
       try {
-        Socket.send(this.clientSocket, { action: 'bytes-received', bytes: chunk.length });
+        Socket.send(transferId, { action: 'bytes-received', bytes: chunk.length });
       } catch (err) {
         res.end();
         logger.error(err);
@@ -46,9 +46,6 @@ File.init(
       type: DataTypes.STRING,
     },
     file: {
-      type: DataTypes.VIRTUAL,
-    },
-    clientSocket: {
       type: DataTypes.VIRTUAL,
     },
   },

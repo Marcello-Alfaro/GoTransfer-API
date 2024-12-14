@@ -1,4 +1,4 @@
-import { DAY_IN_MILISECONDS, MAX_FILE_SIZE, TRANSFER_EXPIRE_TIME } from '../config/config.js';
+import { DAY_IN_MILISECONDS, MAX_TRANSFER_SIZE, TRANSFER_EXPIRE_TIME } from '../config/config.js';
 import ErrorObject from '../helpers/errorObject.js';
 import Transfer from '../models/transfer.js';
 import File from '../models/file.js';
@@ -20,7 +20,7 @@ export default {
     try {
       const transfer = Request.remove(req.params.transferId);
 
-      const { dskId: diskId, sender, receivers, files, folders } = transfer;
+      const { transferId, server, dskId: diskId, sender, receivers, files, folders } = transfer;
 
       const [user] = await User.findOrCreate({
         where: { email: sender },
@@ -47,6 +47,19 @@ export default {
         })
         .save({ files, folders, transferReceivers });
 
+      const { ok } = await Socket.sendWithAck(server.serverId, {
+        action: 'transfer-complete',
+        diskPath: server.Disks[0].path,
+        transferId,
+      });
+
+      if (!ok)
+        throw new ErrorObject(
+          `Something went wrong while finishing the transfer in server ${server.name}.`
+        );
+
+      Socket.find(transferId).end(1000);
+
       if (transferReceivers.length > 1) {
         await new TransferSentSrc(sender, transfer).send();
 
@@ -55,12 +68,10 @@ export default {
             async (receiver) => await new TransferSentDst(receiver, transfer).send()
           )
         );
-
-        return res.status(201).json({ message: `Your files were sent successfully! 🍧` });
+      } else {
+        await new TransferSentSrc(sender, transfer).send();
+        await new TransferSentDst(transferReceivers[0], transfer).send();
       }
-
-      await new TransferSentSrc(sender, transfer).send();
-      await new TransferSentDst(transferReceivers[0], transfer).send();
 
       res.status(201).json({ message: `Your files were sent successfully! 🍧` });
     } catch (err) {
@@ -163,7 +174,6 @@ export default {
 
   async putRedirectMain(req, res, next) {
     try {
-      console.log(req.headers.downloadid);
       const download = Request.remove(req.headers.downloadid);
 
       await pipeline(req, download.mainHttpResponse);
@@ -176,7 +186,6 @@ export default {
 
   async getAllocateTransfer(req, res, next) {
     try {
-      const { socketId } = req;
       const { sender, receivers, title, message, size, files, folders } = req.body;
 
       if (validator.isEmpty(sender) || !validator.isEmail(sender))
@@ -186,12 +195,15 @@ export default {
         if (validator.isEmpty(entry) || !validator.isEmail(entry))
           throw new ErrorObject('Receiver email is required and must be a valid email.', 422);
       });
-      if (size > MAX_FILE_SIZE) throw new ErrorObject('File is too big! Max file size is 4GB', 422);
+      if (size > MAX_TRANSFER_SIZE)
+        throw new ErrorObject(
+          `Transfer is too big! Max transfer size is ${MAX_TRANSFER_SIZE / 1024 ** 3}`,
+          422
+        );
 
       const requestId = Request.add(
-        await Transfer.allocate(sender, receivers, title, message, size, files, folders, socketId)
+        await Transfer.allocate(sender, receivers, title, message, size, files, folders)
       );
-      Socket.find(socketId).requestId = requestId;
 
       res.status(200).json(requestId);
     } catch (err) {
@@ -203,7 +215,7 @@ export default {
     try {
       const transfer = Request.find(req.params.transferId);
 
-      const { transferId, clientSocket, server } = transfer;
+      const { transferId, server } = transfer;
 
       const { headers } = req;
 
@@ -214,7 +226,7 @@ export default {
           transfer.nextFile = File.build({
             fileId,
             file,
-            clientSocket,
+            transferId,
           });
 
           req.messageId = Socket.send(server.serverId, {
@@ -240,9 +252,11 @@ export default {
 
   getRedirectStorage(req, res, next) {
     try {
-      const { nextFile } = Request.find(req.headers.transferid);
+      const transferId = req.headers.transferid;
 
-      nextFile.triggerStream(res);
+      const { nextFile } = Request.find(transferId);
+
+      nextFile.triggerStream(res, transferId);
     } catch (err) {
       next(err);
     }

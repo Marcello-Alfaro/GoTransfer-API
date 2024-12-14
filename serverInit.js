@@ -1,6 +1,6 @@
 import './models/associations.js';
 import sequelize from './database/connection.js';
-import { PORT } from './config/config.js';
+import { NODE_ENV, PORT } from './config/config.js';
 import { Worker } from 'worker_threads';
 import dirname from './dirname.js';
 import path from 'path';
@@ -30,7 +30,9 @@ export default new Promise(async (res, rej) => {
       }
     });
 
-    logger.info(`Server started on port ${PORT} - Running Node.js version ${process.version}`);
+    logger.info(
+      `Server started on port ${PORT} - Running Node.js ${process.version} on ${NODE_ENV} environment.`
+    );
 
     res();
   } catch (err) {

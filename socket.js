@@ -29,7 +29,7 @@ export default class Socket {
               throw new ErrorObject('Invalid origin header!');
 
             res.upgrade(
-              { id: randomUUID(), type: 'client', requestId: null },
+              { id: null, type: 'client' },
               req.getHeader('sec-websocket-key'),
               req.getHeader('sec-websocket-protocol'),
               req.getHeader('sec-websocket-extensions'),
@@ -40,16 +40,28 @@ export default class Socket {
             logger.error(err);
           }
         },
-        open: (socket) => {
-          this.#sockets.set(socket.id, socket);
-          socket.send(JSON.stringify({ action: 'socket-info', id: socket.id }));
-          logger.info(`A client has connected. ID: ${socket.id}`);
+        message: (socket, message) => {
+          const data = this.#decodeJSON(message);
+          const { action } = data;
+
+          if (action === 'transfer-id') {
+            socket.id = data.transferId;
+            this.#sockets.set(socket.id, socket);
+            logger.info(`WebSocket connection for transfer ${socket.id} was established.`);
+          }
         },
         close: async (socket, code) => {
           try {
-            await Request.clientAbort(socket.id);
             this.#sockets.delete(socket.id);
-            logger.warn(`Connection with client ${socket.id} lost due to ${code}.`);
+
+            if (code !== 1000) {
+              await Request.clientAbort(socket.id);
+              return logger.warn(
+                `WebSocket connection with transfer ${socket.id} was lost due to ${code}.`
+              );
+            }
+
+            logger.info(`WebSocket connection with transfer ${socket.id} was closed gracefully.`);
           } catch (err) {
             logger.error(err);
           }
@@ -79,13 +91,8 @@ export default class Socket {
         open: async (socket) => {
           try {
             this.#sockets.set(socket.id, socket);
-            logger.info(
-              `Removed ${await Request.serverAbortUnfinished(
-                socket.id
-              )} unfinished transfers from ${socket.name} server.`
-            );
 
-            const { server } = await this.sendWithAck(socket.id, { action: 'fetch-server-info' });
+            const server = await this.sendWithAck(socket.id, { action: 'fetch-server-info' });
 
             await StorageServer.add(server);
 
@@ -121,7 +128,6 @@ export default class Socket {
         close: async (socket, code) => {
           try {
             this.#sockets.delete(socket.id);
-            Request.serverTagUnfinished(socket.id);
             const server = await StorageServer.disconnect(socket.id);
 
             logger.warn(`Connection with ${server.name} server lost due to ${code}.`);
