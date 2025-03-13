@@ -6,7 +6,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import errorHandler from './middlewares/errorHandler.js';
-import serverInit from './serverInit.js';
+import Socket from './socket.js';
+import init from './init.js';
 
 try {
   const app = express();
@@ -18,9 +19,10 @@ try {
   app.use(API_PATH, appRoutes);
   app.use(errorHandler);
 
-  const server = app.listen(PORT, await serverInit);
+  const server = await init(app);
   server.requestTimeout = 0;
   server.setTimeout(120000, (socket) => socket.destroy());
+  Socket.init(server);
 
   process.on('uncaughtException', (err) => {
     logger.fatal(err);

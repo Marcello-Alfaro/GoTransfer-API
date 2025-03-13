@@ -58,7 +58,7 @@ export default {
           `Something went wrong while finishing the transfer in server ${server.name}.`
         );
 
-      Socket.find(transferId).end(1000);
+      Socket.find(transferId).close(1000);
 
       if (transferReceivers.length > 1) {
         await new TransferSentSrc(sender, transfer).send();

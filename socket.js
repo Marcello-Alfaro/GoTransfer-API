@@ -1,141 +1,155 @@
-import uWS from 'uWebSockets.js';
 import EventEmitter from 'events';
 import { randomUUID } from 'crypto';
-import { ORIGIN_URL, API_PATH, WS_PORT, WS_IDLE_TIMEOUT } from './config/config.js';
+import { API_PATH } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
 import ErrorObject from './helpers/errorObject.js';
 import StorageServer from './models/storageServer.js';
 import Request from './helpers/request.js';
 import logger from './helpers/logger.js';
+import { WebSocketServer } from 'ws';
 
 export default class Socket {
-  static #sockets = new Map();
   static #eventEmitter = new EventEmitter();
   static #decoder = new TextDecoder('utf-8');
+  static #webSocketServer = new WebSocketServer({ noServer: true });
 
-  static init() {
-    uWS
-      .App()
-      .listen(+WS_PORT, (token) =>
-        token
-          ? logger.info(`uWebSockets Server started on port ${WS_PORT}`)
-          : logger.error('Failed to start server')
-      )
-      .ws(`${API_PATH}.uws/clients`, {
-        idleTimeout: WS_IDLE_TIMEOUT,
-        upgrade: (res, req, context) => {
-          try {
-            if (req.getHeader('origin') !== ORIGIN_URL)
-              throw new ErrorObject('Invalid origin header!');
+  static init(server) {
+    server.on('upgrade', async (req, socket, head) => {
+      try {
+        if (req.url === `${API_PATH}.ws/storage-servers`) {
+          const token = req.headers['authorization']?.split(' ')[1];
+          if (!token) throw new ErrorObject('No valid auth token!');
 
-            res.upgrade(
-              { id: null, type: 'client' },
-              req.getHeader('sec-websocket-key'),
-              req.getHeader('sec-websocket-protocol'),
-              req.getHeader('sec-websocket-extensions'),
-              context
-            );
-          } catch (err) {
-            res.close();
-            logger.error(err);
-          }
-        },
-        message: (socket, message) => {
-          const data = this.#decodeJSON(message);
-          const { action } = data;
+          const { id, name } = await jwtVerify(token);
 
-          if (action === 'transfer-id') {
-            socket.id = data.transferId;
-            this.#sockets.set(socket.id, socket);
-            logger.info(`WebSocket connection for transfer ${socket.id} was established.`);
-          }
-        },
-        close: async (socket, code) => {
-          try {
-            this.#sockets.delete(socket.id);
+          this.#webSocketServer.handleUpgrade(req, socket, head, async (ws) => {
+            try {
+              ws.id = id;
 
-            if (code !== 1000) {
-              await Request.clientAbort(socket.id);
-              return logger.warn(
-                `WebSocket connection with transfer ${socket.id} was lost due to ${code}.`
+              ws.sendWithAck = async function (eventEmitter, message) {
+                const messageId = randomUUID();
+
+                this.send(JSON.stringify({ messageId, ...message }));
+
+                return new Promise((res) =>
+                  eventEmitter.once(messageId, (response) => res(response))
+                );
+              };
+
+              ws.keepAlive = function () {
+                if (this.readyState !== WebSocket.OPEN) return;
+
+                this.isAlive = false;
+                this.ping();
+                setTimeout(() => (!this.isAlive ? this.terminate() : this.keepAlive()), 15000);
+              };
+
+              ws.keepAlive();
+
+              ws.on('pong', () => (ws.isAlive = true));
+
+              ws.on('message', async (message) => {
+                const data = this.#decodeJSON(message);
+                const { action } = data;
+
+                if (action === 'server-response') {
+                  const { messageId, response } = data;
+                  this.#eventEmitter.emit(messageId, response);
+                }
+              });
+
+              ws.on('close', async (code) => {
+                try {
+                  await StorageServer.disconnect(id);
+
+                  logger.warn(`Connection with ${name} server lost due to ${code}.`);
+                } catch (err) {
+                  logger.error(err);
+                }
+              });
+
+              ws.on('error', (err) => {
+                logger.error(`Connection with ${name} server encounter an error ${err}.`);
+                ws.terminate();
+              });
+
+              const server = await ws.sendWithAck(this.#eventEmitter, {
+                action: 'fetch-server-info',
+              });
+
+              await StorageServer.add(server);
+
+              ws.send(
+                JSON.stringify({
+                  action: 'main-server-response',
+                  messageId: id,
+                  response: { ok: true, status: 200 },
+                })
+              );
+
+              logger.info(`Connection with ${name} server established!`);
+            } catch (err) {
+              logger.error(err);
+              ws.send(
+                JSON.stringify({
+                  action: 'main-server-response',
+                  messageId: id,
+                  response: { ok: false, status: 500, err },
+                })
               );
             }
+          });
+        } else if (req.url.startsWith(`${API_PATH}.ws/clients`)) {
+          const transferId = req.url.split('/').at(-1);
 
-            logger.info(`WebSocket connection with transfer ${socket.id} was closed gracefully.`);
-          } catch (err) {
-            logger.error(err);
-          }
-        },
-      })
-      .ws(`${API_PATH}.uws/storage-servers`, {
-        idleTimeout: WS_IDLE_TIMEOUT,
-        upgrade: async (res, req, context) => {
-          try {
-            const token = req.getHeader('authorization').split(' ')[1];
+          const transfer = Request.find(transferId);
+          if (!transfer) throw new ErrorObject('Unauthorized!');
 
-            if (!token) throw new ErrorObject('No valid auth token!');
-            const { id, name } = await jwtVerify(token);
+          this.#webSocketServer.handleUpgrade(req, socket, head, async (ws) => {
+            ws.id = transferId;
 
-            res.upgrade(
-              { id, name, type: 'storage-server' },
-              req.getHeader('sec-websocket-key'),
-              req.getHeader('sec-websocket-protocol'),
-              req.getHeader('sec-websocket-extensions'),
-              context
-            );
-          } catch (err) {
-            res.close();
-            logger.error(err);
-          }
-        },
-        open: async (socket) => {
-          try {
-            this.#sockets.set(socket.id, socket);
+            ws.keepAlive = function () {
+              if (this.readyState !== WebSocket.OPEN) return;
 
-            const server = await this.sendWithAck(socket.id, { action: 'fetch-server-info' });
+              this.isAlive = false;
+              this.ping();
+              setTimeout(() => (!this.isAlive ? this.terminate() : this.keepAlive()), 15000);
+            };
 
-            await StorageServer.add(server);
+            ws.keepAlive();
 
-            socket.send(
-              JSON.stringify({
-                action: 'main-server-response',
-                messageId: socket.id,
-                response: { ok: true, status: 200 },
-              })
-            );
+            ws.on('pong', () => (ws.isAlive = true));
 
-            logger.info(`Connection with ${server.name} server established!`);
-          } catch (err) {
-            socket.send(
-              JSON.stringify({
-                action: 'main-server-response',
-                messageId: socket.id,
-                response: { ok: false, status: 500, err },
-              })
-            );
-            logger.error(err);
-          }
-        },
-        message: async (_, message) => {
-          const data = this.#decodeJSON(message);
-          const { action } = data;
+            logger.info(`WebSocket connection for transfer ${transferId} was established.`);
 
-          if (action === 'server-response') {
-            const { messageId, response } = data;
-            this.#eventEmitter.emit(messageId, response);
-          }
-        },
-        close: async (socket, code) => {
-          try {
-            this.#sockets.delete(socket.id);
-            const server = await StorageServer.disconnect(socket.id);
+            ws.on('close', async (code) => {
+              if (code !== 1000) {
+                await Request.clientAbort(transferId);
+                return logger.warn(
+                  `WebSocket connection with transfer ${transferId} was lost due to ${code}.`
+                );
+              }
 
-            logger.warn(`Connection with ${server.name} server lost due to ${code}.`);
-          } catch (err) {
-            logger.error(err);
-          }
-        },
-      });
+              logger.info(
+                `WebSocket connection with transfer ${transferId} was closed gracefully.`
+              );
+            });
+
+            ws.on('error', (err) => {
+              logger.error(
+                `WebSocket connection with transfer ${transferId} encounter an error ${err}.`
+              );
+              ws.terminate();
+            });
+          });
+        } else {
+          socket.destroy();
+        }
+      } catch (err) {
+        logger.error(err);
+        socket.destroy();
+      }
+    });
   }
 
   static #decodeJSON(message) {
@@ -148,8 +162,7 @@ export default class Socket {
 
   static send(id, message) {
     try {
-      const socket = this.#sockets.get(id);
-      if (!socket) throw new ErrorObject(`Socket ${id} was not found!`);
+      const socket = this.find(id);
 
       const messageId = randomUUID();
       socket.send(JSON.stringify({ messageId, ...message }));
@@ -180,7 +193,8 @@ export default class Socket {
     }
   }
 
-  static find(socketId) {
-    return this.#sockets.get(socketId);
+  static find(id) {
+    for (const socket of this.#webSocketServer.clients) if (socket.id === id) return socket;
+    throw new ErrorObject(`Socket ${id} was not found!`);
   }
 }
