@@ -1,8 +1,7 @@
 import EventEmitter from 'events';
 import { randomUUID } from 'crypto';
-import { API_PATH } from './config/config.js';
+import { API_PATH, ORIGIN_URL } from './config/config.js';
 import jwtVerify from './helpers/jwtVerify.js';
-import ErrorObject from './helpers/errorObject.js';
 import StorageServer from './models/storageServer.js';
 import Request from './helpers/request.js';
 import logger from './helpers/logger.js';
@@ -18,7 +17,7 @@ export default class Socket {
       try {
         if (req.url === `${API_PATH}.ws/storage-servers`) {
           const token = req.headers['authorization']?.split(' ')[1];
-          if (!token) throw new ErrorObject('No valid auth token!');
+          if (!token) throw new Error('No valid auth token!');
 
           const { id, name } = await jwtVerify(token);
 
@@ -100,10 +99,13 @@ export default class Socket {
             }
           });
         } else if (req.url.startsWith(`${API_PATH}.ws/clients`)) {
+          if (req.headers.origin !== ORIGIN_URL)
+            throw new Error(`Blocked connection from unauthorized domain (${req.headers.origin}).`);
+
           const transferId = req.url.split('/').at(-1);
 
           const transfer = Request.find(transferId);
-          if (!transfer) throw new ErrorObject('Unauthorized!');
+          if (!transfer) throw new Error('Unauthorized!');
 
           this.#webSocketServer.handleUpgrade(req, socket, head, async (ws) => {
             ws.id = transferId;
@@ -195,6 +197,6 @@ export default class Socket {
 
   static find(id) {
     for (const socket of this.#webSocketServer.clients) if (socket.id === id) return socket;
-    throw new ErrorObject(`Socket ${id} was not found!`);
+    throw new Error(`Socket ${id} was not found!`);
   }
 }
