@@ -4,6 +4,9 @@
   "description": "",
   "main": "app.js",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "start": "node app.js",
     "start:dev": "node --watch --env-file=.env app.js"
@@ -11,7 +14,7 @@
   "author": "Marcello",
   "license": "ISC",
   "dependencies": {
-    "@sendgrid/mail": "^8.1.4",
+    "@sendgrid/mail": "^8.1.5",
     "busboy": "^1.6.0",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
