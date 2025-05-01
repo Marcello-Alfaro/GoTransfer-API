@@ -22,7 +22,7 @@ class TransferSentSrc extends Email {
                       "${this.transfer.title}" was sent successfully with the following information:
                       </h1>
                     
-            <div class="info-block">
+      <div class="info-block">
             <p
               style="font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 0.5em"
             >
@@ -41,7 +41,7 @@ class TransferSentSrc extends Email {
                   }, '')
             }
             </ol>
-                    </div>    
+        </div>    
 `,
       `<ol>
     ${this.files.slice(0, MAX_FILES_EMAIL).reduce((accum, file) => {
@@ -58,7 +58,6 @@ class TransferSentSrc extends Email {
           } more.</p>`
         : ''
     }
-    </p>
     `
     );
   }

@@ -1,4 +1,4 @@
-import { API_PATH, PORT, CORS_OPTIONS } from './config/config.js';
+import { API_PATH, CORS_OPTIONS } from './config/config.js';
 import logger from './helpers/logger.js';
 import express from 'express';
 import appRoutes from './routes/appRoutes.js';

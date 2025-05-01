@@ -130,7 +130,7 @@ p {
 
 .receivers-list {
   font-size: 1em;
-  column-count: 2;
+  padding-left: 10px;
 }
 
 .receivers-list li:last-of-type {
@@ -315,7 +315,7 @@ ol li:last-of-type {
                       "
                     >
                       <p style="margin: 0; font-size: 14px; line-height: 20px">
-                        Copyright &reg; ${new Date().getFullYear()} GoTransfer, A forget it Jake production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
+                        GoTransfer &copy; ${new Date().getFullYear()}, A "Forget It Jake" production. Designed and developed by Marcello Alfaro. All Rights Reserved.<br />
                       </p>
                     </td>
                   </tr>

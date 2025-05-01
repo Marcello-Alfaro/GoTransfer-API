@@ -5,6 +5,7 @@ import { Worker } from 'worker_threads';
 import dirname from './dirname.js';
 import path from 'path';
 import StorageServer from './models/storageServer.js';
+import Socket from './socket.js';
 import os from 'os';
 import logger from './helpers/logger.js';
 
